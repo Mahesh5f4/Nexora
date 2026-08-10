@@ -1,9 +1,12 @@
-package com.EventmanagementbyMahesh.event.ai.gateway;
+package com.EventmanagementbyMahesh.event.ai.research;
 
-import com.EventmanagementbyMahesh.event.ai.model.AiGenerateRequest;
 import com.EventmanagementbyMahesh.event.ai.model.LlmRequest;
 import com.EventmanagementbyMahesh.event.ai.model.LlmResponse;
+import com.EventmanagementbyMahesh.event.ai.research.dto.ResearchRequest;
+import com.EventmanagementbyMahesh.event.ai.research.retrieval.RetrievalProvider;
+import com.EventmanagementbyMahesh.event.ai.research.retrieval.RetrievalResult;
 import com.EventmanagementbyMahesh.event.ai.service.AiExecutionService;
+import com.EventmanagementbyMahesh.event.auth.AuthApplication;
 import com.EventmanagementbyMahesh.event.common.security.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -18,14 +21,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import com.EventmanagementbyMahesh.event.auth.AuthApplication;
 
 @SpringBootTest(classes = AuthApplication.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class AiGatewayIntegrationTest {
+class ResearchIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -39,33 +41,39 @@ class AiGatewayIntegrationTest {
     @MockBean
     private AiExecutionService aiExecutionService;
 
+    // Override retrieval so no internet call is made
+    @MockBean
+    private RetrievalProvider retrievalProvider;
+
     @Test
     void testUnauthenticatedRequestIsRejected() throws Exception {
-        AiGenerateRequest request = new AiGenerateRequest();
-        request.setPrompt("Hello AI");
+        ResearchRequest request = new ResearchRequest("Compare Redis and Memcached.");
 
-        // No Authorization header provided
-        mockMvc.perform(post("/ai/generate")
+        mockMvc.perform(post("/ai/research")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden()); // Spring Security returns 403 by default without custom entrypoint
+                .andExpect(status().isForbidden());
     }
 
     @Test
     void testAuthenticatedRequestIsAllowed() throws Exception {
-        LlmResponse llmResponse = new LlmResponse("Success", "groq", "llama3");
-        when(aiExecutionService.execute(any(LlmRequest.class))).thenReturn(llmResponse);
+        when(retrievalProvider.retrieve(any())).thenReturn(RetrievalResult.empty("noop"));
+        when(retrievalProvider.getProviderName()).thenReturn("noop");
 
-        AiGenerateRequest request = new AiGenerateRequest();
-        request.setPrompt("Hello AI");
+        LlmResponse mockResponse = new LlmResponse(
+                "Redis supports richer data types than Memcached...", "gemini", "gemini-1.5-flash");
+        when(aiExecutionService.execute(any(LlmRequest.class))).thenReturn(mockResponse);
 
-        // Generate a valid JWT token using the real JwtUtil logic injected
+        ResearchRequest request = new ResearchRequest("Compare Redis and Memcached.");
         String token = jwtUtil.generateToken("testuser@example.com", "USER");
 
-        mockMvc.perform(post("/ai/generate")
+        mockMvc.perform(post("/ai/research")
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.answer").value("Redis supports richer data types than Memcached..."))
+                .andExpect(jsonPath("$.provider").value("gemini"))
+                .andExpect(jsonPath("$.model").value("gemini-1.5-flash"));
     }
 }

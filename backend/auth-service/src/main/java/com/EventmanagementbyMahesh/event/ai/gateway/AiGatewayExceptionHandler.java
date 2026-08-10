@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(basePackages = "com.EventmanagementbyMahesh.event.ai.gateway")
+@RestControllerAdvice(basePackages = "com.EventmanagementbyMahesh.event.ai")
 public class AiGatewayExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(AiGatewayExceptionHandler.class);

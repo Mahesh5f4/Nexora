@@ -51,7 +51,7 @@ class AiGatewayControllerTest {
         request.setPrompt("Hello AI");
         request.setModel("test-model");
 
-        mockMvc.perform(post("/api/ai/generate")
+        mockMvc.perform(post("/ai/generate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -66,7 +66,7 @@ class AiGatewayControllerTest {
         AiGenerateRequest request = new AiGenerateRequest();
         request.setPrompt("   "); // blank
 
-        mockMvc.perform(post("/api/ai/generate")
+        mockMvc.perform(post("/ai/generate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -76,7 +76,7 @@ class AiGatewayControllerTest {
     void testMissingPromptFailsValidation() throws Exception {
         AiGenerateRequest request = new AiGenerateRequest(); // No prompt
 
-        mockMvc.perform(post("/api/ai/generate")
+        mockMvc.perform(post("/ai/generate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -90,7 +90,7 @@ class AiGatewayControllerTest {
         AiGenerateRequest request = new AiGenerateRequest();
         request.setPrompt("Trigger Failure");
 
-        mockMvc.perform(post("/api/ai/generate")
+        mockMvc.perform(post("/ai/generate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isServiceUnavailable())

@@ -1,0 +1,54 @@
+# =============================================================
+# Prometheus — Scrape Configuration (Docker Compose Networking)
+# =============================================================
+# Targets use Docker service names (container DNS), NOT localhost.
+# Services must be on the same "eventhub-net" Docker network.
+# =============================================================
+
+global:
+  scrape_interval:     15s   # How often to scrape metrics
+  evaluation_interval: 15s   # How often to evaluate rules
+
+scrape_configs:
+
+  # Spring Boot services expose /api/actuator/prometheus
+  # (they use server.servlet.context-path: /api)
+
+  - job_name: 'auth-service'
+    metrics_path: '/api/actuator/prometheus'
+    static_configs:
+      - targets: ['auth-service:8081']
+        labels:
+          service: 'auth-service'
+          environment: 'production'
+
+  - job_name: 'event-service'
+    metrics_path: '/api/actuator/prometheus'
+    static_configs:
+      - targets: ['event-service:8082']
+        labels:
+          service: 'event-service'
+          environment: 'production'
+
+  - job_name: 'booking-service'
+    metrics_path: '/api/actuator/prometheus'
+    static_configs:
+      - targets: ['booking-service:8083']
+        labels:
+          service: 'booking-service'
+          environment: 'production'
+
+  # Gateway uses reactive (WebFlux) — no servlet context-path
+  # so actuator is at /actuator/prometheus directly
+  - job_name: 'gateway-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['gateway-service:8080']
+        labels:
+          service: 'gateway-service'
+          environment: 'production'
+
+  # Prometheus itself (optional — useful for Grafana meta-dashboards)
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

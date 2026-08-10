@@ -1,0 +1,33 @@
+name: CD Pipeline - Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to AWS EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Navigate to the project directory
+            cd /home/ubuntu/event-management-system
+            
+            # Pull the latest changes from the main branch
+            git pull origin main
+            
+            # Navigate to the backend directory where docker-compose lives
+            cd backend
+            
+            # Rebuild all images and recreate containers in detached mode
+            sudo docker compose up -d --build
+            
+            # Remove any dangling or unused Docker images to free up space
+            sudo docker image prune -f

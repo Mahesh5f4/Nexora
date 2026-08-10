@@ -1,0 +1,44 @@
+# ─── IDE & Build Artifacts ─────────────────────────────────────
+.idea/
+*.iml
+.mvn/
+target/
+**/target/
+
+# ─── Logs ──────────────────────────────────────────────────────
+*.log
+*.log.*
+boot-output.log
+log.txt
+output.log
+run-error.log
+startup.log
+auth-error.log
+booking-error.log
+event-error.log
+gateway-error.log
+
+# ─── Documentation ─────────────────────────────────────────────
+*.md
+docs/
+
+# ─── Git ───────────────────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# ─── Environment Files (handled separately) ────────────────────
+.env
+.env.*
+
+# ─── Scratch & Backup Directories ──────────────────────────────
+scratch/
+src_backup_monolith/
+
+# ─── OS Files ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Windows Scripts (not needed in container) ─────────────────
+*.bat

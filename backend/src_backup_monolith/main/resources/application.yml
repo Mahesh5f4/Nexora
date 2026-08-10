@@ -1,0 +1,109 @@
+spring:
+  application:
+    name: event
+  
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3308/ticketbooking?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&sslMode=PREFERRED}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:MaheshDatabase}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: EventSystemHikariPool
+      maximum-pool-size: 50
+      minimum-idle: 10
+      idle-timeout: 300000
+      connection-timeout: 30000
+      leak-detection-threshold: 10000
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+    database-platform: org.hibernate.dialect.MySQLDialect
+  
+  data:
+    redis:
+      url: ${SPRING_REDIS_URL:redis://localhost:6379}
+  
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    virtual-host: ${SPRING_RABBITMQ_VIRTUAL_HOST:/}
+  
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+  
+  mail:
+    host: smtp-relay.brevo.com
+    port: 587
+    username: ${SPRING_MAIL_USERNAME:aaf6d9001@smtp-brevo.com}
+    password: ${SPRING_MAIL_PASSWORD:}
+    from: ${SPRING_MAIL_FROM:mahesh20104@gmail.com}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /api
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+    mbeanregistry:
+      enabled: true # Enable Tomcat metrics for Actuator
+
+# Monitoring & Observability
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,beans
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
+      percentiles:
+        http:
+          server:
+            requests: 0.5, 0.9, 0.95, 0.99
+    export:
+      prometheus:
+        enabled: true
+
+# Custom Configs
+ml:
+  service:
+    url: ${ML_SERVICE_URL:http://localhost:8001}
+
+google:
+  client:
+    id: ${GOOGLE_CLIENT_ID:}
+
+brevo:
+  api:
+    key: ${BREVO_API_KEY:}

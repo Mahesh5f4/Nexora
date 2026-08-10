@@ -1,0 +1,16 @@
+[[redirects]]
+  from = "/api/*"
+  to = "http://13.48.56.253/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/ws-booking/*"
+  to = "http://13.48.56.253/ws-booking/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

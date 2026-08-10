@@ -54,7 +54,7 @@ class AuthIntegrationTest {
     void testFullAuthenticationFlow() throws Exception {
         // 1. Register User
         RegisterRequest registerRequest = new RegisterRequest();
-        registerRequest.email = "integration@example.com";
+        registerRequest.email = "integration@normal.com";
         registerRequest.password = "StrongPass123!";
         registerRequest.name = "Integration Test";
 
@@ -65,7 +65,7 @@ class AuthIntegrationTest {
 
         // 2. Login User (Expect requires2FA = true)
         LoginRequest loginRequest = new LoginRequest();
-        loginRequest.email = "integration@example.com";
+        loginRequest.email = "integration@normal.com";
         loginRequest.password = "StrongPass123!";
 
         mockMvc.perform(post("/auth/login")
@@ -75,12 +75,12 @@ class AuthIntegrationTest {
                 .andExpect(jsonPath("$.requires2FA").value(true));
 
         // Get OTP from DB
-        User user = userRepository.findByEmail("integration@example.com").orElseThrow();
+        User user = userRepository.findByEmail("integration@normal.com").orElseThrow();
         String otp = user.getOtp();
 
         // 3. Verify OTP
         VerifyOtpRequest otpRequest = new VerifyOtpRequest();
-        otpRequest.email = "integration@example.com";
+        otpRequest.email = "integration@normal.com";
         otpRequest.otp = otp;
 
         MvcResult otpResult = mockMvc.perform(post("/auth/verify-otp")
@@ -115,23 +115,23 @@ class AuthIntegrationTest {
     void testUserIsolation() throws Exception {
         // 1. Register User A
         RegisterRequest regA = new RegisterRequest();
-        regA.email = "userA@example.com"; regA.password = "passA"; regA.name = "User A";
+        regA.email = "userA@normal.com"; regA.password = "passA"; regA.name = "User A";
         mockMvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(regA))).andExpect(status().isOk());
 
         // 2. Register User B
         RegisterRequest regB = new RegisterRequest();
-        regB.email = "userB@example.com"; regB.password = "passB"; regB.name = "User B";
+        regB.email = "userB@normal.com"; regB.password = "passB"; regB.name = "User B";
         mockMvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(regB))).andExpect(status().isOk());
 
         // 3. Login User A
         LoginRequest logA = new LoginRequest();
-        logA.email = "userA@example.com"; logA.password = "passA";
+        logA.email = "userA@normal.com"; logA.password = "passA";
         mockMvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(logA)))
                 .andExpect(status().isOk());
                 
-        User userA = userRepository.findByEmail("userA@example.com").orElseThrow();
+        User userA = userRepository.findByEmail("userA@normal.com").orElseThrow();
         VerifyOtpRequest otpReqA = new VerifyOtpRequest();
-        otpReqA.email = "userA@example.com";
+        otpReqA.email = "userA@normal.com";
         otpReqA.otp = userA.getOtp();
 
         String resA = mockMvc.perform(post("/auth/verify-otp").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(otpReqA)))
@@ -149,19 +149,19 @@ class AuthIntegrationTest {
                 .andExpect(jsonPath("$.name").value("User A Modified"));
 
         // Verify User B's name is NOT modified by User A's token
-        User dbUserB = userRepository.findByEmail("userB@example.com").orElseThrow();
+        User dbUserB = userRepository.findByEmail("userB@normal.com").orElseThrow();
         org.junit.jupiter.api.Assertions.assertEquals("User B", dbUserB.getName());
     }
 
     @Test
     void testDuplicateEmailRegistration() throws Exception {
         RegisterRequest req1 = new RegisterRequest();
-        req1.email = "duplicate@example.com"; req1.password = "pass123"; req1.name = "User 1";
+        req1.email = "duplicate@normal.com"; req1.password = "pass123"; req1.name = "User 1";
         mockMvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(req1)))
                 .andExpect(status().isOk());
 
         RegisterRequest req2 = new RegisterRequest();
-        req2.email = "duplicate@example.com"; req2.password = "pass456"; req2.name = "User 2";
+        req2.email = "duplicate@normal.com"; req2.password = "pass456"; req2.name = "User 2";
         mockMvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(req2)))
                 .andExpect(status().isBadRequest());
     }
@@ -169,16 +169,16 @@ class AuthIntegrationTest {
     @Test
     void testUnknownEndpointWithValidToken() throws Exception {
         RegisterRequest reg = new RegisterRequest();
-        reg.email = "unknown@example.com"; reg.password = "pass"; reg.name = "Unknown";
+        reg.email = "unknown@normal.com"; reg.password = "pass"; reg.name = "Unknown";
         mockMvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(reg))).andExpect(status().isOk());
 
         LoginRequest log = new LoginRequest();
-        log.email = "unknown@example.com"; log.password = "pass";
+        log.email = "unknown@normal.com"; log.password = "pass";
         mockMvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(log))).andExpect(status().isOk());
         
-        User user = userRepository.findByEmail("unknown@example.com").orElseThrow();
+        User user = userRepository.findByEmail("unknown@normal.com").orElseThrow();
         VerifyOtpRequest otpReq = new VerifyOtpRequest();
-        otpReq.email = "unknown@example.com";
+        otpReq.email = "unknown@normal.com";
         otpReq.otp = user.getOtp();
 
         String res = mockMvc.perform(post("/auth/verify-otp").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(otpReq)))

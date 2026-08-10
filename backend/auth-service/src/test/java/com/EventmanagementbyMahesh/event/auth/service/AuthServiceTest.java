@@ -58,7 +58,7 @@ class AuthServiceTest {
 
         defaultUser = new User();
         defaultUser.setId(1L);
-        defaultUser.setEmail("user@example.com");
+        defaultUser.setEmail("user@normal.com");
         defaultUser.setName("Test User");
         defaultUser.setPassword("encoded-password");
         defaultUser.setRole(Role.USER);
@@ -67,7 +67,7 @@ class AuthServiceTest {
     @Test
     void register_Success() {
         RegisterRequest req = new RegisterRequest();
-        req.email = "new@example.com";
+        req.email = "new@normal.com";
         req.name = "New User";
         req.password = "password123";
 
@@ -76,13 +76,13 @@ class AuthServiceTest {
         when(repo.save(any(User.class))).thenReturn(new User());
 
         assertDoesNotThrow(() -> authService.register(req));
-        verify(repo).save(argThat(user -> user.getEmail().equals("new@example.com") && user.getRole() == Role.USER));
+        verify(repo).save(argThat(user -> user.getEmail().equals("new@normal.com") && user.getRole() == Role.USER));
     }
 
     @Test
     void register_DuplicateEmail_ThrowsException() {
         RegisterRequest req = new RegisterRequest();
-        req.email = "user@example.com";
+        req.email = "user@normal.com";
 
         when(repo.findByEmail(req.email)).thenReturn(Optional.of(defaultUser));
 
@@ -93,7 +93,7 @@ class AuthServiceTest {
     @Test
     void login_Success_NormalUser_GeneratesOtp() throws Exception {
         LoginRequest req = new LoginRequest();
-        req.email = "user@example.com";
+        req.email = "user@normal.com";
         req.password = "password123";
 
         when(repo.findByEmail(req.email)).thenReturn(Optional.of(defaultUser));
@@ -102,16 +102,16 @@ class AuthServiceTest {
         AuthResponse response = authService.login(req);
 
         assertTrue(response.requires2FA);
-        assertEquals("user@example.com", response.email);
+        assertEquals("user@normal.com", response.email);
         verify(repo).save(argThat(user -> user.getOtp() != null && user.getOtpExpiry() != null));
-        verify(emailService).sendLoginOtpEmail(eq("user@example.com"), anyString());
+        verify(emailService).sendLoginOtpEmail(eq("user@normal.com"), anyString());
     }
 
     @Test
     void login_Success_AdminUser_ReturnsToken() {
         defaultUser.setRole(Role.ADMIN);
         LoginRequest req = new LoginRequest();
-        req.email = "user@example.com";
+        req.email = "user@normal.com";
         req.password = "password123";
 
         when(repo.findByEmail(req.email)).thenReturn(Optional.of(defaultUser));
@@ -129,7 +129,7 @@ class AuthServiceTest {
     @Test
     void login_InvalidPassword_ThrowsException() {
         LoginRequest req = new LoginRequest();
-        req.email = "user@example.com";
+        req.email = "user@normal.com";
         req.password = "wrong-password";
 
         when(repo.findByEmail(req.email)).thenReturn(Optional.of(defaultUser));
@@ -141,7 +141,7 @@ class AuthServiceTest {
     @Test
     void login_EmailServiceFailure_HandlesGracefully() throws Exception {
         LoginRequest req = new LoginRequest();
-        req.email = "user@example.com";
+        req.email = "user@normal.com";
         req.password = "password123";
 
         when(repo.findByEmail(req.email)).thenReturn(Optional.of(defaultUser));
@@ -158,7 +158,7 @@ class AuthServiceTest {
         defaultUser.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
 
         VerifyOtpRequest req = new VerifyOtpRequest();
-        req.email = "user@example.com";
+        req.email = "user@normal.com";
         req.otp = "123456";
 
         when(repo.findByEmail(req.email)).thenReturn(Optional.of(defaultUser));
@@ -177,7 +177,7 @@ class AuthServiceTest {
         defaultUser.setOtpExpiry(LocalDateTime.now().minusMinutes(1)); // Expired
 
         VerifyOtpRequest req = new VerifyOtpRequest();
-        req.email = "user@example.com";
+        req.email = "user@normal.com";
         req.otp = "123456";
 
         when(repo.findByEmail(req.email)).thenReturn(Optional.of(defaultUser));
@@ -191,7 +191,7 @@ class AuthServiceTest {
         defaultUser.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
 
         VerifyOtpRequest req = new VerifyOtpRequest();
-        req.email = "user@example.com";
+        req.email = "user@normal.com";
         req.otp = "654321"; // Wrong OTP
 
         when(repo.findByEmail(req.email)).thenReturn(Optional.of(defaultUser));
@@ -202,7 +202,7 @@ class AuthServiceTest {
     @Test
     void verifyOtp_UserNotFound_ThrowsException() {
         VerifyOtpRequest req = new VerifyOtpRequest();
-        req.email = "unknown@example.com";
+        req.email = "unknown@normal.com";
         req.otp = "123456";
 
         when(repo.findByEmail(req.email)).thenReturn(Optional.empty());
@@ -213,14 +213,14 @@ class AuthServiceTest {
     @Test
     void forgotPassword_Success() throws Exception {
         ForgotPasswordRequest req = new ForgotPasswordRequest();
-        req.setEmail("user@example.com");
+        req.setEmail("user@normal.com");
 
         when(repo.findByEmail(req.getEmail())).thenReturn(Optional.of(defaultUser));
 
         assertDoesNotThrow(() -> authService.forgotPassword(req));
         assertNotNull(defaultUser.getOtp());
         verify(repo).save(defaultUser);
-        verify(emailService).sendForgotPasswordOtpEmail(eq("user@example.com"), anyString());
+        verify(emailService).sendForgotPasswordOtpEmail(eq("user@normal.com"), anyString());
     }
 
     @Test
@@ -229,7 +229,7 @@ class AuthServiceTest {
         defaultUser.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
 
         ResetPasswordRequest req = new ResetPasswordRequest();
-        req.setEmail("user@example.com");
+        req.setEmail("user@normal.com");
         req.setOtp("123456");
         req.setNewPassword("new-password123");
 
@@ -249,7 +249,7 @@ class AuthServiceTest {
         defaultUser.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
 
         ResetPasswordRequest req = new ResetPasswordRequest();
-        req.setEmail("user@example.com");
+        req.setEmail("user@normal.com");
         req.setOtp("wrong-otp");
         req.setNewPassword("new-password123");
 
@@ -266,7 +266,7 @@ class AuthServiceTest {
                     GoogleIdTokenVerifier verifier = Mockito.mock(GoogleIdTokenVerifier.class);
                     GoogleIdToken idToken = Mockito.mock(GoogleIdToken.class);
                     GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
-                    payload.setEmail("user@example.com");
+                    payload.setEmail("user@normal.com");
                     payload.set("name", "Google User");
                     payload.set("picture", "avatar.png");
                     
@@ -278,8 +278,8 @@ class AuthServiceTest {
                     } catch (Exception e) {}
                 })) {
 
-            when(repo.findByEmail("user@example.com")).thenReturn(Optional.of(defaultUser));
-            when(jwtUtil.generateToken("user@example.com", "USER")).thenReturn("google-token");
+            when(repo.findByEmail("user@normal.com")).thenReturn(Optional.of(defaultUser));
+            when(jwtUtil.generateToken("user@normal.com", "USER")).thenReturn("google-token");
 
             AuthResponse res = authService.loginWithGoogle("valid-credential");
 
@@ -296,7 +296,7 @@ class AuthServiceTest {
                     GoogleIdTokenVerifier verifier = Mockito.mock(GoogleIdTokenVerifier.class);
                     GoogleIdToken idToken = Mockito.mock(GoogleIdToken.class);
                     GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
-                    payload.setEmail("newgoogle@example.com");
+                    payload.setEmail("newgoogle@normal.com");
                     payload.set("name", "New Google User");
                     payload.set("picture", "new-avatar.png");
                     
@@ -308,15 +308,15 @@ class AuthServiceTest {
                     } catch (Exception e) {}
                 })) {
 
-            when(repo.findByEmail("newgoogle@example.com")).thenReturn(Optional.empty());
+            when(repo.findByEmail("newgoogle@normal.com")).thenReturn(Optional.empty());
             when(repo.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
             when(encoder.encode(anyString())).thenReturn("random-pass");
-            when(jwtUtil.generateToken("newgoogle@example.com", "USER")).thenReturn("google-token-new");
+            when(jwtUtil.generateToken("newgoogle@normal.com", "USER")).thenReturn("google-token-new");
 
             AuthResponse res = authService.loginWithGoogle("valid-credential");
 
             assertEquals("google-token-new", res.token);
-            assertEquals("newgoogle@example.com", res.email);
+            assertEquals("newgoogle@normal.com", res.email);
             assertEquals("new-avatar.png", res.avatarUrl);
         }
     }
@@ -339,22 +339,22 @@ class AuthServiceTest {
 
     @Test
     void getUserByEmail_Success() {
-        when(repo.findByEmail("user@example.com")).thenReturn(Optional.of(defaultUser));
+        when(repo.findByEmail("user@normal.com")).thenReturn(Optional.of(defaultUser));
         
-        Optional<UserDto> result = authService.getUserByEmail("user@example.com");
+        Optional<UserDto> result = authService.getUserByEmail("user@normal.com");
         
         assertTrue(result.isPresent());
-        assertEquals("user@example.com", result.get().getEmail());
+        assertEquals("user@normal.com", result.get().getEmail());
     }
 
     @Test
     void getUserAnalytics_ReturnsCorrectData() {
         User activeUser = new User();
-        activeUser.setEmail("active@example.com");
+        activeUser.setEmail("active@normal.com");
         activeUser.setLastActive(LocalDateTime.now().minusMinutes(2));
 
         User inactiveUser = new User();
-        inactiveUser.setEmail("inactive@example.com");
+        inactiveUser.setEmail("inactive@normal.com");
         inactiveUser.setLastActive(LocalDateTime.now().minusMinutes(10));
 
         when(repo.findAll()).thenReturn(Arrays.asList(activeUser, inactiveUser));

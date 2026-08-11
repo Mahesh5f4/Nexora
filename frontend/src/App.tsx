@@ -20,11 +20,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const Settings = lazy(() => import('./pages/Settings'));
 
 // Workspace Pages
-const Dashboard = lazy(() => import('./pages/workspace/Dashboard'));
-const Analyze = lazy(() => import('./pages/workspace/Analyze'));
-const Generate = lazy(() => import('./pages/workspace/Generate'));
-const Research = lazy(() => import('./pages/workspace/Research'));
-const Plan = lazy(() => import('./pages/workspace/Plan'));
+const Workspace = lazy(() => import('./pages/workspace/Workspace'));
 
 const BG_VIDEO = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260511_230229_7c9bc431-46cf-489a-948d-e8144d8eb5d4.mp4';
 
@@ -51,24 +47,6 @@ const PrivateRoute = ({ children, adminOnly = false }) => {
 
   return children;
 };
-
-const VideoBackground = memo(() => (
-  <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-    <video 
-      className="w-full h-full object-cover opacity-60 will-change-transform"
-      autoPlay 
-      muted 
-      loop 
-      playsInline 
-      aria-hidden="true"
-      title="Background Event Video"
-      src={BG_VIDEO} 
-    />
-    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transform-gpu" />
-  </div>
-));
-
-VideoBackground.displayName = 'VideoBackground';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -112,14 +90,14 @@ const LoadingFallback = () => (
 
 function App() {
   const location = useLocation();
+  const isWorkspaceRoute = location.pathname.startsWith('/workspace');
 
   return (
-    <div className="relative min-h-screen bg-black text-white selection:bg-white/20 overflow-x-hidden font-sans antialiased">
-      <VideoBackground />
-      <div className="relative z-10 flex flex-col min-h-screen">
-        <Navbar />
+    <div className="relative min-h-screen bg-[#0A0A0A] text-white selection:bg-white/20 overflow-x-hidden font-sans antialiased">
+      <div className={`relative z-10 flex flex-col ${isWorkspaceRoute ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+        {!isWorkspaceRoute && <Navbar />}
 
-        <main className="flex-1 pt-20">
+        <main className={`flex-1 ${!isWorkspaceRoute ? 'pt-20' : ''}`}>
           <Suspense fallback={<LoadingFallback />}>
             <AnimatePresence mode="wait">
               <ErrorBoundary>
@@ -138,11 +116,11 @@ function App() {
                   <Route path="/legal" element={<Legal />} />
 
                   {/* Workspace Routes */}
-                  <Route path="/workspace" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-                  <Route path="/workspace/analyze" element={<PrivateRoute><Analyze /></PrivateRoute>} />
-                  <Route path="/workspace/generate" element={<PrivateRoute><Generate /></PrivateRoute>} />
-                  <Route path="/workspace/research" element={<PrivateRoute><Research /></PrivateRoute>} />
-                  <Route path="/workspace/plan" element={<PrivateRoute><Plan /></PrivateRoute>} />
+                  <Route path="/workspace" element={<PrivateRoute><Workspace /></PrivateRoute>} />
+                  <Route path="/workspace/analyze" element={<Navigate to="/workspace" replace />} />
+                  <Route path="/workspace/generate" element={<Navigate to="/workspace" replace />} />
+                  <Route path="/workspace/research" element={<Navigate to="/workspace" replace />} />
+                  <Route path="/workspace/plan" element={<Navigate to="/workspace" replace />} />
 
                   <Route
                     path="/profile"
@@ -167,7 +145,7 @@ function App() {
           </Suspense>
         </main>
 
-        <Footer />
+        {!isWorkspaceRoute && <Footer />}
       </div>
     </div>
   );

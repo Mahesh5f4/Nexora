@@ -48,7 +48,7 @@ const ForgotPassword = () => {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="liquid-glass w-full max-w-md bg-white/5 p-8 sm:p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden"
+        className="ai-card w-full max-w-md p-8 sm:p-10 relative overflow-hidden"
       >
         <AnimatePresence mode="wait">
           {step === 1 && (

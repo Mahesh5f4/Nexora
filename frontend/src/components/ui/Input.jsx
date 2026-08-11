@@ -18,7 +18,7 @@ const Input = ({ label, error, icon: Icon, className = '', ...props }) => {
         <input
           {...props}
           type={inputType}
-          className={`liquid-glass w-full bg-white/5 text-white px-5 py-3 rounded-xl outline-none focus:bg-white/10 transition-all duration-300 placeholder:text-white/20 text-sm transform-gpu ${Icon ? 'pl-12' : ''} ${isPassword ? 'pr-12' : ''} ${error ? 'border-red-500/50' : ''}`}
+          className={`ai-panel w-full bg-[#151515] text-white px-5 py-3 rounded-xl outline-none focus:bg-[#1a1a1a] transition-all duration-300 placeholder:text-white/20 text-sm transform-gpu ${Icon ? 'pl-12' : ''} ${isPassword ? 'pr-12' : ''} ${error ? 'border-red-500/50' : ''}`}
         />
         {isPassword && (
           <button

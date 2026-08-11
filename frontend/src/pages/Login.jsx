@@ -36,7 +36,7 @@ const Login = () => {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="liquid-glass w-full max-w-md bg-white/5 p-8 sm:p-10 rounded-[2.5rem] shadow-2xl"
+        className="ai-card w-full max-w-md p-8 sm:p-10"
       >
         <div className="flex flex-col items-center text-center mb-10">
           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-white/10">
@@ -104,7 +104,7 @@ const Login = () => {
             </div>
 
             <div className="flex justify-center">
-               <div className="liquid-glass p-1 rounded-xl w-full flex justify-center">
+               <div className="p-1 rounded-xl w-full flex justify-center bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
                   <GoogleLoginButton
                     onSuccess={handleGoogleSuccess}
                     onError={() => console.log('Login Failed')}

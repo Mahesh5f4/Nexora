@@ -25,4 +25,13 @@ export const authService = {
   getUsers: () => api.get('/auth/admin/users'),
 };
 
+export const aiService = {
+  listConversations: () => api.get('/ai/conversations'),
+  getConversation: (id) => api.get(`/ai/conversations/${id}`),
+  createConversation: (payload) => api.post('/ai/conversations', payload),
+  sendMessage: (id, payload) => api.post(`/ai/conversations/${id}/messages`, payload),
+  getMessages: (id) => api.get(`/ai/conversations/${id}/messages`),
+  deleteConversation: (id) => api.delete(`/ai/conversations/${id}`)
+};
+
 export default api;

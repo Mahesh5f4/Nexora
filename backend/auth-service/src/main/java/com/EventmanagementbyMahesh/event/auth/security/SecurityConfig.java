@@ -19,9 +19,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
+    private final com.EventmanagementbyMahesh.event.common.security.InternalServiceTokenFilter internalTokenFilter;
 
-    public SecurityConfig(JwtUtil jwtUtil) {
+    public SecurityConfig(JwtUtil jwtUtil, com.EventmanagementbyMahesh.event.common.security.InternalServiceTokenFilter internalTokenFilter) {
         this.jwtUtil = jwtUtil;
+        this.internalTokenFilter = internalTokenFilter;
     }
 
     @Bean
@@ -44,9 +46,11 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/events/*/reviews").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/internal/**").permitAll() // Internal filter will handle this
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(internalTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

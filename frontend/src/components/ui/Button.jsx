@@ -11,7 +11,7 @@ const Button = ({
 }) => {
   const variants = {
     primary: 'bg-white text-black hover:bg-white/90',
-    secondary: 'liquid-glass text-white hover:bg-white/5',
+    secondary: 'bg-white/5 text-white hover:bg-white/10 border border-white/5',
     outline: 'border border-white/10 text-white hover:bg-white/5',
     ghost: 'text-white/70 hover:text-white',
     danger: 'bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20',

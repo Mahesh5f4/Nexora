@@ -1,0 +1,117 @@
+from typing import List, Dict, Any, Optional
+import time
+import logging
+from app.services.chunker import CharacterChunker
+from app.services.embedding import EmbeddingService
+from app.services.vector_store import BaseVectorStore, RetrievedChunk
+from app.clients.spring_gateway_client import SpringAiGatewayClient
+from app.services.rag_prompt_builder import RagPromptBuilder
+from app.models.ai_execute import AiExecuteRequest
+from app.models.rag_answer import RagAnswerResponse, RagSourceModel
+
+logger = logging.getLogger(__name__)
+
+class RAGService:
+    def __init__(self, chunker: CharacterChunker, embedding_service: EmbeddingService, vector_store: BaseVectorStore, spring_gateway_client: SpringAiGatewayClient = None):
+        self.chunker = chunker
+        self.embedding_service = embedding_service
+        self.vector_store = vector_store
+        self.spring_gateway_client = spring_gateway_client
+        self.prompt_builder = RagPromptBuilder()
+
+    def index_chunks(self, document_id: str, user_id: str, text: str, metadata: Optional[Dict[str, Any]] = None):
+        """
+        Takes raw text, chunks it, generates embeddings, and upserts them into the vector store.
+        """
+        if not text:
+            return
+            
+        chunks = self.chunker.split_text(text)
+        if not chunks:
+            return
+            
+        vectors = self.embedding_service.embed_chunks(chunks)
+        
+        self.vector_store.upsert(
+            user_id=user_id,
+            document_id=document_id,
+            chunks=chunks,
+            vectors=vectors,
+            metadata=metadata
+        )
+
+    def search_similar(self, query: str, user_id: str, top_k: int = 5) -> List[RetrievedChunk]:
+        """
+        Embeds the query and performs a similarity search, restricted to the user's data.
+        """
+        if not query:
+            return []
+            
+        start_time = time.perf_counter()
+        query_vectors = self.embedding_service.embed_chunks([query])
+        if not query_vectors:
+            return []
+            
+        query_vector = query_vectors[0]
+        chunks = self.vector_store.search(user_id=user_id, query_vector=query_vector, top_k=top_k)
+        retrieval_ms = int((time.perf_counter() - start_time) * 1000)
+        
+        # Lightweight observability
+        logger.info(f"RAG Retrieval user_id={user_id} chunks={len(chunks)} retrieval_ms={retrieval_ms}")
+        return chunks
+
+    def delete_document(self, user_id: str, document_id: str):
+        """
+        Deletes all vector store entries for a given document.
+        """
+        self.vector_store.delete_document(user_id=user_id, document_id=document_id)
+
+    def retrieve_and_answer(self, query: str, user_id: str, top_k: int = 5) -> RagAnswerResponse:
+        total_start = time.perf_counter()
+        raw_chunks = self.search_similar(query, user_id, top_k)
+        
+        if not raw_chunks:
+            return RagAnswerResponse(
+                answer="I couldn't find relevant information in your documents to answer this question.",
+                sources=[]
+            )
+            
+        # Context deduplication to avoid identical adjacent chunks wasting LLM tokens
+        seen_content = set()
+        chunks = []
+        for chunk in raw_chunks:
+            if chunk.content not in seen_content:
+                chunks.append(chunk)
+                seen_content.add(chunk.content)
+            
+        context = self.prompt_builder.build_context(chunks)
+        prompt = self.prompt_builder.build_user_prompt(query, context)
+        
+        ai_request = AiExecuteRequest(
+            prompt=prompt,
+            systemPrompt=self.prompt_builder.system_prompt,
+            temperature=0.2
+        )
+        
+        llm_start = time.perf_counter()
+        response = self.spring_gateway_client.execute_prompt(ai_request)
+        generation_ms = int((time.perf_counter() - llm_start) * 1000)
+        
+        total_ms = int((time.perf_counter() - total_start) * 1000)
+        
+        logger.info(
+            f"RAG Request completed user_id={user_id} chunks_sent={len(chunks)} "
+            f"generation_ms={generation_ms} total_ms={total_ms} provider={response.provider}"
+        )
+        
+        sources = [
+            RagSourceModel(
+                documentId=chunk.document_id,
+                filename=chunk.metadata.get("filename", "unknown"),
+                chunkId=chunk.chunk_id,
+                score=chunk.score
+            )
+            for chunk in chunks
+        ]
+        
+        return RagAnswerResponse(answer=response.content, sources=sources)

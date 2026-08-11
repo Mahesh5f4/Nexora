@@ -1,0 +1,44 @@
+package com.EventmanagementbyMahesh.event.common.security;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+
+@Component
+public class InternalServiceTokenFilter extends OncePerRequestFilter {
+
+    private final String internalToken;
+
+    public InternalServiceTokenFilter(@Value("${ai.internal.token:}") String internalToken) {
+        this.internalToken = internalToken;
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+        
+        String path = request.getRequestURI();
+        if (path.startsWith("/internal/")) {
+            String authHeader = request.getHeader("Authorization");
+            if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                if (StringUtils.hasText(internalToken) && internalToken.equals(token)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+            }
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Unauthorized: Invalid or missing internal service token");
+            return;
+        }
+
+        filterChain.doFilter(request, response);
+    }
+}

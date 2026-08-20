@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "http://56.228.22.98/api/:match*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

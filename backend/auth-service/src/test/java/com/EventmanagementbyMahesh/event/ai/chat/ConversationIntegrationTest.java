@@ -68,7 +68,7 @@ class ConversationIntegrationTest {
     void sendMessage_ShouldCallPythonAgent_WithConversationContext() {
         // Arrange
         User user = new User();
-        user.setId("100");
+        user.setId(100L);
         
         Conversation conversation = new Conversation();
         conversation.setUserId(user.getId());
@@ -83,7 +83,7 @@ class ConversationIntegrationTest {
         ReflectionTestUtils.setField(oldReply, "id", 11L);
         oldReply.setCreatedAt(LocalDateTime.now().minusMinutes(4));
         
-        when(conversationRepository.findByIdAndUserId("1", "100")).thenReturn(Optional.of(conversation));
+        when(conversationRepository.findByIdAndUserId("1", 100L)).thenReturn(Optional.of(conversation));
         
         // Mock save user message (the new one)
         when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> {

@@ -74,11 +74,11 @@ class ConversationServiceSourceTest {
         ReflectionTestUtils.setField(conversationService, "maxContextMessages", 10);
         
         testUser = new User();
-        ReflectionTestUtils.setField(testUser, "id", "1");
+        ReflectionTestUtils.setField(testUser, "id", 1L);
         testUser.setEmail("test@example.com");
 
         testConversation = new Conversation();
-        ReflectionTestUtils.setField(testConversation, "id", 10L);
+        ReflectionTestUtils.setField(testConversation, "id", "10");
         testConversation.setUserId(testUser.getId());
         testConversation.setTitle("New conversation");
         testConversation.setRole("GENERAL");
@@ -95,7 +95,7 @@ class ConversationServiceSourceTest {
     @Test
     void testAgentResponseWithZeroSources() {
         mockSecurityContext();
-        when(conversationRepository.findByIdAndUserId(10L, "1")).thenReturn(Optional.of(testConversation));
+        when(conversationRepository.findByIdAndUserId("10", 1L)).thenReturn(Optional.of(testConversation));
         
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> {
             Message m = i.getArgument(0);
@@ -103,13 +103,13 @@ class ConversationServiceSourceTest {
             return m;
         });
 
-        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq(10L), any()))
+        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq("10"), any()))
                 .thenReturn(Collections.emptyList());
 
         AgentAskResponse response = new AgentAskResponse("Answer without sources", Collections.emptyList(), "agent");
         when(pythonAiServiceClient.askAgent(any())).thenReturn(response);
 
-        MessageDto result = conversationService.sendMessage(10L, createRequest("Hello", false));
+        MessageDto result = conversationService.sendMessage("10", createRequest("Hello", false));
         
         assertNotNull(result);
         assertTrue(result.getSources().isEmpty());
@@ -118,7 +118,7 @@ class ConversationServiceSourceTest {
     @Test
     void testAgentResponseWithOneRagSource() {
         mockSecurityContext();
-        when(conversationRepository.findByIdAndUserId(10L, "1")).thenReturn(Optional.of(testConversation));
+        when(conversationRepository.findByIdAndUserId("10", 1L)).thenReturn(Optional.of(testConversation));
         
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> {
             Message m = i.getArgument(0);
@@ -126,14 +126,14 @@ class ConversationServiceSourceTest {
             return m;
         });
 
-        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq(10L), any()))
+        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq("10"), any()))
                 .thenReturn(Collections.emptyList());
 
         RagSourceDto ragSource = new RagSourceDto("doc1", "internal.pdf", "chunk1", 0.95);
         AgentAskResponse response = new AgentAskResponse("Answer with RAG", List.of(ragSource), "agent");
         when(pythonAiServiceClient.askAgent(any())).thenReturn(response);
 
-        MessageDto result = conversationService.sendMessage(10L, createRequest("What about PDF?", false));
+        MessageDto result = conversationService.sendMessage("10", createRequest("What about PDF?", false));
         
         assertNotNull(result);
         assertEquals(1, result.getSources().size());
@@ -144,7 +144,7 @@ class ConversationServiceSourceTest {
     @Test
     void testAgentResponseWithOneWebSource() {
         mockSecurityContext();
-        when(conversationRepository.findByIdAndUserId(10L, "1")).thenReturn(Optional.of(testConversation));
+        when(conversationRepository.findByIdAndUserId("10", 1L)).thenReturn(Optional.of(testConversation));
         
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> {
             Message m = i.getArgument(0);
@@ -152,14 +152,14 @@ class ConversationServiceSourceTest {
             return m;
         });
 
-        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq(10L), any()))
+        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq("10"), any()))
                 .thenReturn(Collections.emptyList());
 
         RagSourceDto webSource = new RagSourceDto("https://example.com", "Example Domain", "example.com", 0.88);
         AgentAskResponse response = new AgentAskResponse("Answer with Web", List.of(webSource), "agent");
         when(pythonAiServiceClient.askAgent(any())).thenReturn(response);
 
-        MessageDto result = conversationService.sendMessage(10L, createRequest("Search the web", false));
+        MessageDto result = conversationService.sendMessage("10", createRequest("Search the web", false));
         
         assertNotNull(result);
         assertEquals(1, result.getSources().size());
@@ -170,7 +170,7 @@ class ConversationServiceSourceTest {
     @Test
     void testAgentResponseWithMixedSources() {
         mockSecurityContext();
-        when(conversationRepository.findByIdAndUserId(10L, "1")).thenReturn(Optional.of(testConversation));
+        when(conversationRepository.findByIdAndUserId("10", 1L)).thenReturn(Optional.of(testConversation));
         
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> {
             Message m = i.getArgument(0);
@@ -178,7 +178,7 @@ class ConversationServiceSourceTest {
             return m;
         });
 
-        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq(10L), any()))
+        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq("10"), any()))
                 .thenReturn(Collections.emptyList());
 
         RagSourceDto ragSource = new RagSourceDto("doc1", "internal.pdf", "chunk1", 0.95);
@@ -187,7 +187,7 @@ class ConversationServiceSourceTest {
         AgentAskResponse response = new AgentAskResponse("Answer with Mixed", Arrays.asList(ragSource, webSource), "agent");
         when(pythonAiServiceClient.askAgent(any())).thenReturn(response);
 
-        MessageDto result = conversationService.sendMessage(10L, createRequest("Search everywhere", false));
+        MessageDto result = conversationService.sendMessage("10", createRequest("Search everywhere", false));
         
         assertNotNull(result);
         assertEquals(2, result.getSources().size());
@@ -196,7 +196,7 @@ class ConversationServiceSourceTest {
     @Test
     void testSourcesArePersistedWithAssistantMessage() {
         mockSecurityContext();
-        when(conversationRepository.findByIdAndUserId(10L, "1")).thenReturn(Optional.of(testConversation));
+        when(conversationRepository.findByIdAndUserId("10", 1L)).thenReturn(Optional.of(testConversation));
         
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
         
@@ -206,14 +206,14 @@ class ConversationServiceSourceTest {
             return m;
         });
 
-        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq(10L), any()))
+        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq("10"), any()))
                 .thenReturn(Collections.emptyList());
 
         RagSourceDto ragSource = new RagSourceDto("doc1", "internal.pdf", "chunk1", 0.95);
         AgentAskResponse response = new AgentAskResponse("Answer", List.of(ragSource), "agent");
         when(pythonAiServiceClient.askAgent(any())).thenReturn(response);
 
-        conversationService.sendMessage(10L, createRequest("Hello", false));
+        conversationService.sendMessage("10", createRequest("Hello", false));
         
         List<Message> savedMessages = messageCaptor.getAllValues();
         assertEquals(2, savedMessages.size()); // User message + Assistant message
@@ -227,7 +227,7 @@ class ConversationServiceSourceTest {
     @Test
     void testHistoricalMessageWithoutSourcesStillWorksAndPagination() {
         mockSecurityContext();
-        when(conversationRepository.findByIdAndUserId(10L, "1")).thenReturn(Optional.of(testConversation));
+        when(conversationRepository.findByIdAndUserId("10", 1L)).thenReturn(Optional.of(testConversation));
         
         Message historicalMsg = new Message(testConversation, MessageRole.ASSISTANT, "Old answer");
         ReflectionTestUtils.setField(historicalMsg, "id", "99");
@@ -235,9 +235,9 @@ class ConversationServiceSourceTest {
         historicalMsg.setSources(null); 
         
         Page<Message> messagePage = new PageImpl<>(List.of(historicalMsg));
-        when(messageRepository.findByConversationIdOrderByCreatedAtAsc(eq(10L), any())).thenReturn(messagePage);
+        when(messageRepository.findByConversationIdOrderByCreatedAtAsc(eq("10"), any())).thenReturn(messagePage);
         
-        Page<MessageDto> result = conversationService.getMessages(10L, PageRequest.of(0, 10));
+        Page<MessageDto> result = conversationService.getMessages("10", PageRequest.of(0, 10));
         
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
@@ -252,7 +252,7 @@ class ConversationServiceSourceTest {
     void testUserCannotAccessOtherUserConversationSources() {
         mockSecurityContext();
         // Trying to access conversation not owned by the user
-        when(conversationRepository.findByIdAndUserId("99", "1")).thenReturn(Optional.empty());
+        when(conversationRepository.findByIdAndUserId("99", 1L)).thenReturn(Optional.empty());
         
         assertThrows(RuntimeException.class, () -> {
             conversationService.sendMessage("99", createRequest("Hello", false));

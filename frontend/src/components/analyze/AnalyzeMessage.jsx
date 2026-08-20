@@ -62,7 +62,7 @@ const AnalyzeMessage = React.memo(({ message }) => {
     return null;
   }, [isUser, message.metadata]);
 
-  const config = AGENT_CONFIG.ANALYZE;
+
 
   return (
     <div className={`flex gap-4 ${isUser ? 'flex-row-reverse' : ''} group`}>

@@ -34,7 +34,7 @@ class LLMGateway:
             raise ValueError("OPENROUTER_API_KEY is missing from environment variables!")
 
         self.llm = ChatOpenAI(
-            model="openai/gpt-4o-mini",
+            model="openai/gpt-4o",
             api_key=api_key,
             openai_api_key=api_key,
             base_url="https://openrouter.ai/api/v1",

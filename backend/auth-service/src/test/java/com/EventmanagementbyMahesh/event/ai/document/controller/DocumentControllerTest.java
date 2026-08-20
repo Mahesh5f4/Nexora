@@ -161,11 +161,11 @@ public class DocumentControllerTest {
 
     @Test
     void shouldAskQuestion() throws Exception {
-        RagAskRequest request = new RagAskRequest("test question", 5);
+        RagAskRequest request = new RagAskRequest("test question", 5, "doc1");
         RagSourceDto source = new RagSourceDto("doc1", "test.txt", "chunk1", 0.95);
         RagAnswerResponse mockResponse = new RagAnswerResponse("answer", List.of(source));
 
-        when(pythonAiServiceClient.askQuestion("test question", testUser.getId(), 5))
+        when(pythonAiServiceClient.askQuestion("test question", testUser.getId(), 5, "doc1"))
                 .thenReturn(mockResponse);
 
         mockMvc.perform(post("/ai/documents/ask")
@@ -180,7 +180,7 @@ public class DocumentControllerTest {
 
     @Test
     void shouldFailAskWithBlankQuery() throws Exception {
-        RagAskRequest request = new RagAskRequest("", 5);
+        RagAskRequest request = new RagAskRequest("", 5, "doc1");
 
         mockMvc.perform(post("/ai/documents/ask")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken)

@@ -11,7 +11,7 @@ def test_spring_gateway_client_success():
     
     with requests_mock.Mocker() as m:
         m.post(
-            f"{client.base_url}/internal/ai/execute",
+            f"{client.base_url}/api/internal/ai/execute",
             json={"content": "Response content", "provider": "mock", "model": "mock-model"}
         )
         
@@ -27,7 +27,7 @@ def test_spring_gateway_client_unauthorized():
     request = AiExecuteRequest(prompt="Test prompt")
     
     with requests_mock.Mocker() as m:
-        m.post(f"{client.base_url}/internal/ai/execute", status_code=401)
+        m.post(f"{client.base_url}/api/internal/ai/execute", status_code=401)
         
         with pytest.raises(HTTPException) as excinfo:
             client.execute_prompt(request)
@@ -40,7 +40,7 @@ def test_spring_gateway_client_timeout():
     request = AiExecuteRequest(prompt="Test prompt")
     
     with requests_mock.Mocker() as m:
-        m.post(f"{client.base_url}/internal/ai/execute", exc=Timeout)
+        m.post(f"{client.base_url}/api/internal/ai/execute", exc=Timeout)
         
         with pytest.raises(HTTPException) as excinfo:
             client.execute_prompt(request)
@@ -53,7 +53,7 @@ def test_spring_gateway_client_500_error():
     request = AiExecuteRequest(prompt="Test prompt")
     
     with requests_mock.Mocker() as m:
-        m.post(f"{client.base_url}/internal/ai/execute", status_code=500, text="Internal Server Error")
+        m.post(f"{client.base_url}/api/internal/ai/execute", status_code=500, text="Internal Server Error")
         
         with pytest.raises(HTTPException) as excinfo:
             client.execute_prompt(request)

@@ -2,26 +2,26 @@ package com.EventmanagementbyMahesh.event.ai.generate;
 
 import com.EventmanagementbyMahesh.event.ai.generate.dto.GenerateRequest;
 import com.EventmanagementbyMahesh.event.ai.generate.dto.GenerateResponse;
-import com.EventmanagementbyMahesh.event.ai.model.LlmRequest;
-import com.EventmanagementbyMahesh.event.ai.model.LlmResponse;
-import com.EventmanagementbyMahesh.event.ai.service.AiExecutionService;
+import com.EventmanagementbyMahesh.event.ai.document.client.PythonAiServiceClient;
+import com.EventmanagementbyMahesh.event.ai.document.dto.AiExecuteRequest;
+import com.EventmanagementbyMahesh.event.ai.document.dto.AiExecuteResponse;
 import org.springframework.stereotype.Service;
 
 @Service
 public class GenerateService {
 
-    private final AiExecutionService aiExecutionService;
+    private final PythonAiServiceClient pythonAiServiceClient;
     private final GeneratePromptBuilder promptBuilder;
 
-    public GenerateService(AiExecutionService aiExecutionService, GeneratePromptBuilder promptBuilder) {
-        this.aiExecutionService = aiExecutionService;
+    public GenerateService(PythonAiServiceClient pythonAiServiceClient, GeneratePromptBuilder promptBuilder) {
+        this.pythonAiServiceClient = pythonAiServiceClient;
         this.promptBuilder = promptBuilder;
     }
 
     public GenerateResponse generateContent(GenerateRequest request) {
         String systemPrompt = promptBuilder.buildSystemPrompt(request.getType());
 
-        LlmRequest llmRequest = new LlmRequest(
+        AiExecuteRequest llmRequest = new AiExecuteRequest(
                 request.getPrompt(),
                 systemPrompt,
                 null, // model
@@ -29,21 +29,14 @@ public class GenerateService {
                 2000  // max tokens
         );
 
-        LlmResponse llmResponse = aiExecutionService.execute(llmRequest);
+        AiExecuteResponse llmResponse = pythonAiServiceClient.executePrompt(llmRequest);
 
         GenerateResponse.TokenUsage tokenUsage = null;
-        if (llmResponse.totalTokens != null || llmResponse.inputTokens != null || llmResponse.outputTokens != null) {
-            tokenUsage = new GenerateResponse.TokenUsage(
-                    llmResponse.inputTokens,
-                    llmResponse.outputTokens,
-                    llmResponse.totalTokens
-            );
-        }
 
         return new GenerateResponse(
-                llmResponse.content,
-                llmResponse.provider,
-                llmResponse.model,
+                llmResponse.getContent(),
+                "OpenRouter (Python Gateway)",
+                "anthropic/claude-3.5-sonnet",
                 tokenUsage
         );
     }

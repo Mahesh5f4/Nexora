@@ -83,7 +83,7 @@ def test_answer_grounding(rag_service):
     prompt = rag_service.spring_gateway_client.execute_prompt.call_args[0][0].prompt
     assert "The backend uses Spring Boot." in prompt
     assert "What framework is used?" in prompt
-    assert "DOCUMENT 1" in prompt
+    assert "--- DOCUMENT EVIDENCE 1 ---" in prompt
 
 def test_unsupported_question(rag_service):
     user_id = "unsupported_user"

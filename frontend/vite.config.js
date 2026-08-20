@@ -17,11 +17,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8081',
+        target: 'http://127.0.0.1:8081',
         changeOrigin: true,
       },
       '/ws-booking': {
-        target: 'http://localhost:8081',
+        target: 'http://127.0.0.1:8081',
         ws: true,
       },
     },
@@ -30,6 +30,7 @@ export default defineConfig({
     global: 'window',
   },
   build: {
+    modulePreload: false,
     rollupOptions: {
       output: {}
     }

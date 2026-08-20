@@ -11,7 +11,7 @@ const Dashboard = () => {
   const [prompt, setPrompt] = useState('');
 
   const quickActions = [
-    { label: 'Analyze', desc: 'Code & Docs', icon: BrainCircuit, to: '/workspace/analyze', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { label: 'Analyze', desc: 'Code & Docs', icon: BrainCircuit, to: '/workspace/knowledge', color: 'text-blue-400', bg: 'bg-blue-500/10' },
     { label: 'Generate', desc: 'Content', icon: Sparkles, to: '/workspace/generate', color: 'text-purple-400', bg: 'bg-purple-500/10' },
     { label: 'Research', desc: 'Topics', icon: Search, to: '/workspace/research', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
     { label: 'Plan', desc: 'Workflows', icon: Lightbulb, to: '/workspace/plan', color: 'text-amber-400', bg: 'bg-amber-500/10' },

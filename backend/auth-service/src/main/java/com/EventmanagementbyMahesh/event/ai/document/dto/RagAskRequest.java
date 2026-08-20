@@ -21,4 +21,6 @@ public class RagAskRequest {
     @Max(value = 20, message = "topK cannot exceed 20")
     @Builder.Default
     private int topK = 5;
+
+    private String documentId;
 }

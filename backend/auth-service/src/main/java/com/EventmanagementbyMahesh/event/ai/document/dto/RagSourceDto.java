@@ -12,4 +12,12 @@ public class RagSourceDto {
     private String filename;
     private String chunkId;
     private double score;
+    private String publishedDate;
+
+    public RagSourceDto(String documentId, String filename, String chunkId, double score) {
+        this.documentId = documentId;
+        this.filename = filename;
+        this.chunkId = chunkId;
+        this.score = score;
+    }
 }

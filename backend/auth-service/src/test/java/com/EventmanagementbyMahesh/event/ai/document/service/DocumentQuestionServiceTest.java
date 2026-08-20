@@ -28,12 +28,12 @@ public class DocumentQuestionServiceTest {
     @Test
     void shouldAskQuestionSuccessfully() {
         Long userId = 1L;
-        RagAskRequest request = new RagAskRequest("What is Spring Boot?", 5);
+        RagAskRequest request = new RagAskRequest("What is Spring Boot?", 5, "doc1");
         
         RagSourceDto source = new RagSourceDto("doc1", "spring.txt", "chunk1", 0.98);
         RagAnswerResponse mockResponse = new RagAnswerResponse("Spring Boot is a framework.", List.of(source));
 
-        when(pythonAiServiceClient.askQuestion("What is Spring Boot?", userId, 5)).thenReturn(mockResponse);
+        when(pythonAiServiceClient.askQuestion("What is Spring Boot?", userId, 5, "doc1")).thenReturn(mockResponse);
 
         RagAnswerResponse response = documentQuestionService.askQuestion(request, userId);
 
@@ -41,6 +41,6 @@ public class DocumentQuestionServiceTest {
         assertEquals(1, response.getSources().size());
         assertEquals("doc1", response.getSources().get(0).getDocumentId());
 
-        verify(pythonAiServiceClient).askQuestion("What is Spring Boot?", userId, 5);
+        verify(pythonAiServiceClient).askQuestion("What is Spring Boot?", userId, 5, "doc1");
     }
 }

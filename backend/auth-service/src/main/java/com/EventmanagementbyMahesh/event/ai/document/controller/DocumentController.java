@@ -111,12 +111,8 @@ public class DocumentController {
     public ResponseEntity<RagAnswerResponse> askQuestion(
             @jakarta.validation.Valid @RequestBody RagAskRequest request,
             Authentication auth) {
-        try {
-            User user = getAuthenticatedUser(auth);
-            RagAnswerResponse response = documentQuestionService.askQuestion(request, user.getId());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        User user = getAuthenticatedUser(auth);
+        RagAnswerResponse response = documentQuestionService.askQuestion(request, user.getId());
+        return ResponseEntity.ok(response);
     }
 }

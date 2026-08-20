@@ -57,7 +57,7 @@ def test_prompt_injection_boundary(rag_service):
     
     # Verify the malicious content is securely bounded in the prompt as data
     prompt = rag_service.spring_gateway_client.execute_prompt.call_args[0][0].prompt
-    assert "--- DOCUMENT 1 ---" in prompt
+    assert "--- DOCUMENT EVIDENCE 1 ---" in prompt
     assert malicious_content in prompt
     
     # Verify the system prompt remains unchanged and separate from user data

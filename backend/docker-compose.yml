@@ -32,6 +32,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-nexora}
       POSTGRES_USER: ${POSTGRES_USER:-nexora}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    ports:
+      - "5432:5432"
     volumes:
       - nexora_postgres_data:/var/lib/postgresql/data
     networks:
@@ -72,6 +74,8 @@ services:
     image: qdrant/qdrant:latest
     container_name: nexora-qdrant
     restart: unless-stopped
+    ports:
+      - "6333:6333"
     volumes:
       - nexora_qdrant_data:/qdrant/storage
     networks:
@@ -120,6 +124,7 @@ services:
       CEREBRAS_API_KEY: ${CEREBRAS_API_KEY}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       AI_SERVICE_INTERNAL_TOKEN: ${AI_SERVICE_INTERNAL_TOKEN}
+      AI_SERVICE_URL: http://ai-service:8000
       # Service port
       PORT: 8081
     ports:
@@ -154,6 +159,7 @@ services:
       QDRANT_URL: http://qdrant:6333
       SPRING_AI_GATEWAY_URL: http://backend:8081
       AI_SERVICE_INTERNAL_TOKEN: ${AI_SERVICE_INTERNAL_TOKEN}
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
     depends_on:
       qdrant:
         condition: service_healthy

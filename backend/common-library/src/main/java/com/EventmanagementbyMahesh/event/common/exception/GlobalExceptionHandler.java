@@ -68,6 +68,19 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(org.springframework.web.client.HttpStatusCodeException.class)
+    public ResponseEntity<ErrorResponse> handleHttpStatusCodeException(org.springframework.web.client.HttpStatusCodeException ex) {
+        String traceId = MDC.get("traceId");
+        logger.error("[{}] HTTP Status Exception: {} - {}", traceId, ex.getStatusCode(), ex.getResponseBodyAsString());
+        ErrorResponse error = new ErrorResponse(
+                ex.getStatusCode().value(),
+                "UPSTREAM_ERROR",
+                ex.getMessage(),
+                traceId
+        );
+        return new ResponseEntity<>(error, ex.getStatusCode());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
         String traceId = MDC.get("traceId");

@@ -51,14 +51,13 @@ public class DocumentService {
         // Read bytes synchronously while stream is available
         byte[] fileBytes = file.getBytes();
 
-        // Process asynchronously
-        processDocumentAsync(doc.getId(), fileBytes);
+        // Process synchronously so it's ready for immediate RAG queries
+        processDocumentSync(doc.getId(), fileBytes);
 
         return doc;
     }
 
-    @Async
-    public void processDocumentAsync(Long documentId, byte[] fileBytes) {
+    public void processDocumentSync(Long documentId, byte[] fileBytes) {
         Document doc = documentRepository.findById(documentId).orElse(null);
         if (doc == null) {
             return;

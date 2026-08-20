@@ -33,6 +33,9 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers
+                    .crossOriginOpenerPolicy(coop -> coop.policy(org.springframework.security.web.header.writers.CrossOriginOpenerPolicyHeaderWriter.CrossOriginOpenerPolicy.UNSAFE_NONE))
+                )
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/auth/**").permitAll()
@@ -46,8 +49,8 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/events/*/reviews").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers("/internal/**").permitAll() // Internal filter will handle this
-                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/internal/**", "/api/internal/**").permitAll() // Internal filter will handle this
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR, jakarta.servlet.DispatcherType.ASYNC).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(internalTokenFilter, UsernamePasswordAuthenticationFilter.class)

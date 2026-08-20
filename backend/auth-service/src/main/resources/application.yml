@@ -87,6 +87,10 @@ management:
       prometheus:
         enabled: true
 
+logging:
+  level:
+    org.springframework.security: DEBUG
+
 google:
   client:
     id: ${GOOGLE_CLIENT_ID:584418196078-qt77vi3grcjed1c87c79bl0bto665cpq.apps.googleusercontent.com}

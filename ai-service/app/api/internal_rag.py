@@ -89,10 +89,34 @@ async def answer_question(
         response = rag_service.retrieve_and_answer(
             query=request.query,
             user_id=request.userId,
-            top_k=request.topK
+            top_k=request.topK,
+            document_id=request.documentId
         )
         return response
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/memory")
+async def get_user_memory(
+    userId: str,
+    rag_service: RAGService = Depends(get_rag_service)
+):
+    try:
+        memories = rag_service.list_user_memory(userId)
+        return {"memories": memories}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/memory/{memoryId}")
+async def delete_user_memory(
+    memoryId: str,
+    userId: str,
+    rag_service: RAGService = Depends(get_rag_service)
+):
+    try:
+        rag_service.delete_user_memory(user_id=userId, memory_id=memoryId)
+        return {"status": "success", "message": "Memory deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -16,10 +16,10 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${admin.email:admin@eventhub.com}")
+    @Value("${admin.email}")
     private String adminEmail;
 
-    @Value("${admin.password:admin123}")
+    @Value("${admin.password}")
     private String adminPassword;
 
     public DatabaseSeeder(UserRepository userRepository, PasswordEncoder passwordEncoder) {

@@ -28,7 +28,7 @@ def test_retrieval_success(override_rag_service):
     response = client.post(
         "/internal/rag/retrieve",
         json={"query": "test query", "userId": "user1", "topK": 5},
-        headers={"Authorization": "Bearer default_dev_token"}
+        headers={"Authorization": "Bearer super-secret-dev-token"}
     )
 
     assert response.status_code == 200
@@ -44,7 +44,7 @@ def test_retrieval_empty_results(override_rag_service):
     response = client.post(
         "/internal/rag/retrieve",
         json={"query": "test query", "userId": "user1", "topK": 5},
-        headers={"Authorization": "Bearer default_dev_token"}
+        headers={"Authorization": "Bearer super-secret-dev-token"}
     )
 
     assert response.status_code == 200
@@ -55,7 +55,7 @@ def test_retrieval_validation_error(override_rag_service):
     response = client.post(
         "/internal/rag/retrieve",
         json={"query": "", "userId": "user1", "topK": 0}, # Invalid topK
-        headers={"Authorization": "Bearer default_dev_token"}
+        headers={"Authorization": "Bearer super-secret-dev-token"}
     )
 
     assert response.status_code == 422 # Validation Error
@@ -66,7 +66,7 @@ def test_retrieval_internal_error(override_rag_service):
     response = client.post(
         "/internal/rag/retrieve",
         json={"query": "test query", "userId": "user1", "topK": 5},
-        headers={"Authorization": "Bearer default_dev_token"}
+        headers={"Authorization": "Bearer super-secret-dev-token"}
     )
 
     assert response.status_code == 500

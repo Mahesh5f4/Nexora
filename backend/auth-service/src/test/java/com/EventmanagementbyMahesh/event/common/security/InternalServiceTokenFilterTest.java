@@ -15,7 +15,8 @@ class InternalServiceTokenFilterTest {
 
     @Test
     void doFilterInternal_validToken_proceeds() throws ServletException, IOException {
-        InternalServiceTokenFilter filter = new InternalServiceTokenFilter("valid-token");
+        JwtUtil mockJwtUtil = mock(JwtUtil.class);
+        InternalServiceTokenFilter filter = new InternalServiceTokenFilter("valid-token", mockJwtUtil);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/internal/ai/execute");
         request.addHeader("Authorization", "Bearer valid-token");
@@ -30,7 +31,8 @@ class InternalServiceTokenFilterTest {
 
     @Test
     void doFilterInternal_invalidToken_returns401() throws ServletException, IOException {
-        InternalServiceTokenFilter filter = new InternalServiceTokenFilter("valid-token");
+        JwtUtil mockJwtUtil = mock(JwtUtil.class);
+        InternalServiceTokenFilter filter = new InternalServiceTokenFilter("valid-token", mockJwtUtil);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/internal/ai/execute");
         request.addHeader("Authorization", "Bearer invalid-token");
@@ -45,7 +47,8 @@ class InternalServiceTokenFilterTest {
 
     @Test
     void doFilterInternal_missingToken_returns401() throws ServletException, IOException {
-        InternalServiceTokenFilter filter = new InternalServiceTokenFilter("valid-token");
+        JwtUtil mockJwtUtil = mock(JwtUtil.class);
+        InternalServiceTokenFilter filter = new InternalServiceTokenFilter("valid-token", mockJwtUtil);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/internal/ai/execute");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -59,7 +62,8 @@ class InternalServiceTokenFilterTest {
 
     @Test
     void doFilterInternal_notInternalPath_proceeds() throws ServletException, IOException {
-        InternalServiceTokenFilter filter = new InternalServiceTokenFilter("valid-token");
+        JwtUtil mockJwtUtil = mock(JwtUtil.class);
+        InternalServiceTokenFilter filter = new InternalServiceTokenFilter("valid-token", mockJwtUtil);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/some-other-path");
         MockHttpServletResponse response = new MockHttpServletResponse();

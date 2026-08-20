@@ -69,18 +69,26 @@ class QdrantVectorStore(BaseVectorStore):
             points=points
         )
         
-    def search(self, user_id: str, query_vector: List[float], top_k: int = 5) -> List[RetrievedChunk]:
+    def search(self, user_id: str, query_vector: List[float], top_k: int = 5, document_id: Optional[str] = None) -> List[RetrievedChunk]:
         from qdrant_client.models import Filter, FieldCondition, MatchValue
         
         # Critical: Multi-tenant data isolation
-        user_filter = Filter(
-            must=[
+        must_conditions = [
+            FieldCondition(
+                key="user_id",
+                match=MatchValue(value=user_id)
+            )
+        ]
+        
+        if document_id:
+            must_conditions.append(
                 FieldCondition(
-                    key="user_id",
-                    match=MatchValue(value=user_id)
+                    key="document_id",
+                    match=MatchValue(value=document_id)
                 )
-            ]
-        )
+            )
+            
+        user_filter = Filter(must=must_conditions)
         
         search_result = self._client.search(
             collection_name=self._collection_name,

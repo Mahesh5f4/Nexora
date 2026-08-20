@@ -15,6 +15,6 @@ public class DocumentQuestionService {
     }
 
     public RagAnswerResponse askQuestion(RagAskRequest request, Long userId) {
-        return pythonAiServiceClient.askQuestion(request.getQuery(), userId, request.getTopK());
+        return pythonAiServiceClient.askQuestion(request.getQuery(), userId, request.getTopK(), request.getDocumentId());
     }
 }

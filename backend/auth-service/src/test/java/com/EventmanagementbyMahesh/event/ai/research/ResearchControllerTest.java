@@ -47,7 +47,7 @@ class ResearchControllerTest {
     void testResearch_Success() throws Exception {
         ResearchRequest request = new ResearchRequest("Compare Redis and Memcached.");
         ResearchResponse response = new ResearchResponse(
-                "Redis is better for complex data types...", "groq", "llama-3.3-70b");
+                "Redis is better for complex data types...", "groq", "gpt-oss-120b");
 
         when(researchService.research(any(ResearchRequest.class))).thenReturn(response);
 
@@ -58,7 +58,7 @@ class ResearchControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.answer").value("Redis is better for complex data types..."))
                 .andExpect(jsonPath("$.provider").value("groq"))
-                .andExpect(jsonPath("$.model").value("llama-3.3-70b"));
+                .andExpect(jsonPath("$.model").value("gpt-oss-120b"));
     }
 
     @Test

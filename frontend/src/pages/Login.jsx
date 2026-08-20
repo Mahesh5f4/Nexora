@@ -18,7 +18,13 @@ const Login = () => {
   const redirectMessage = location.state?.message;
 
   useEffect(() => {
-    if (user) navigate('/workspace');
+    if (user) {
+      if (user.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/workspace');
+      }
+    }
     return () => dispatch(clearError());
   }, [user, navigate, dispatch]);
 

@@ -1,11 +1,31 @@
 from typing import List
-from .document_processor import DocumentProcessor, PlainTextProcessor
+from .document_processor import (
+    DocumentProcessor, 
+    PlainTextProcessor, 
+    PdfProcessor,
+    DocxProcessor,
+    XlsxProcessor,
+    CsvProcessor,
+    PptxProcessor,
+    MarkdownProcessor,
+    HtmlProcessor,
+    JsonProcessor,
+    XmlProcessor
+)
 
 class DocumentProcessingService:
     def __init__(self):
         self.processors: List[DocumentProcessor] = [
-            PlainTextProcessor()
-            # Future processors (PDF, Docx) can be added here
+            PlainTextProcessor(),
+            PdfProcessor(),
+            DocxProcessor(),
+            XlsxProcessor(),
+            CsvProcessor(),
+            PptxProcessor(),
+            MarkdownProcessor(),
+            HtmlProcessor(),
+            JsonProcessor(),
+            XmlProcessor()
         ]
 
     def extract_text(self, filename: str, content_type: str, content: bytes) -> str:

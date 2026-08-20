@@ -55,6 +55,63 @@ frontend/.vscode/
 .classpath
 .project
 .factorypath
+# Backend
+backend/target/
+backend/*/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/*.log
+backend/event.iml
+backend/src/main/resources/application.properties
+# backend/src/main/resources/application.yml
+backend/src/main/resources/application-*.properties
+backend/src/main/resources/application-*.yml
+backend/.env
+backend/.env.local
+backend/.env.production
+
+# Docker — Let's Encrypt certs (contain private keys)
+backend/certbot/
+
+# Database backups (potentially large)
+backend/backups/
+
+# Service log files
+backend/*-service.log
+backend/*-service.error.log
+backend/*-service.run.log
+backend/auth-error.log
+backend/booking-error.log
+backend/event-error.log
+backend/gateway-error.log
+backend/boot-output.log
+backend/log.txt
+backend/output.log
+backend/run-error.log
+backend/startup.log
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.vscode/
+
+# IDEs
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
 .apt_generated
 .springBeans
 .sts4-cache
@@ -62,3 +119,7 @@ frontend/.vscode/
 # OS
 .DS_Store
 Thumbs.db
+ai-service/.env
+ai-service/.env.*
+ai-service/venv/
+ai-service/__pycache__/

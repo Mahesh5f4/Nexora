@@ -21,6 +21,10 @@ const Settings = lazy(() => import('./pages/Settings'));
 
 // Workspace Pages
 const Workspace = lazy(() => import('./pages/workspace/Workspace'));
+const Knowledge = lazy(() => import('./pages/workspace/Knowledge'));
+const Usage = lazy(() => import('./pages/workspace/Usage'));
+
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
 const BG_VIDEO = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260511_230229_7c9bc431-46cf-489a-948d-e8144d8eb5d4.mp4';
 
@@ -91,20 +95,23 @@ const LoadingFallback = () => (
 function App() {
   const location = useLocation();
   const isWorkspaceRoute = location.pathname.startsWith('/workspace');
+  const user = useAppSelector(state => state.auth.user);
 
   return (
-    <div className="relative min-h-screen bg-[#0A0A0A] text-white selection:bg-white/20 overflow-x-hidden font-sans antialiased">
-      <div className={`relative z-10 flex flex-col ${isWorkspaceRoute ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+    <div className="relative min-h-[100dvh] bg-[#0A0A0A] text-white selection:bg-white/20 overflow-x-hidden font-sans antialiased">
+      <div className={`relative z-10 flex flex-col ${isWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'}`}>
         {!isWorkspaceRoute && <Navbar />}
 
-        <main className={`flex-1 ${!isWorkspaceRoute ? 'pt-20' : ''}`}>
+        <main className={`flex-1 flex flex-col w-full h-full ${!isWorkspaceRoute ? 'pt-20' : ''}`}>
           <Suspense fallback={<LoadingFallback />}>
             <AnimatePresence mode="wait">
               <ErrorBoundary>
-                <Routes location={location} key={location.pathname}>
+                <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/login" element={
-                    useAppSelector(state => state.auth.user) ? <Navigate to="/workspace" /> : <Login />
+                    user 
+                    ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/workspace'} /> 
+                    : <Login />
                   } />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -117,6 +124,9 @@ function App() {
 
                   {/* Workspace Routes */}
                   <Route path="/workspace" element={<PrivateRoute><Workspace /></PrivateRoute>} />
+                  <Route path="/workspace/chat/:id" element={<PrivateRoute><Workspace /></PrivateRoute>} />
+                  <Route path="/workspace/knowledge" element={<PrivateRoute><Knowledge /></PrivateRoute>} />
+                  <Route path="/workspace/usage" element={<PrivateRoute><Usage /></PrivateRoute>} />
                   <Route path="/workspace/analyze" element={<Navigate to="/workspace" replace />} />
                   <Route path="/workspace/generate" element={<Navigate to="/workspace" replace />} />
                   <Route path="/workspace/research" element={<Navigate to="/workspace" replace />} />
@@ -138,6 +148,16 @@ function App() {
                         <Settings />
                       </PrivateRoute>
                     }
+                  />
+                  
+                  {/* Admin Route */}
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <PrivateRoute adminOnly={true}>
+                        <AdminDashboard />
+                      </PrivateRoute>
+                    } 
                   />
                 </Routes>
               </ErrorBoundary>

@@ -6,6 +6,7 @@ class AiExecuteRequest(BaseModel):
     systemPrompt: Optional[str] = None
     temperature: Optional[float] = None
     maxTokens: Optional[int] = None
+    provider: Optional[str] = "gemini"
 
 class AiExecuteResponse(BaseModel):
     content: str

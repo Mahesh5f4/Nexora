@@ -38,11 +38,12 @@ const Profile = () => {
         <div className="lg:col-span-4">
           <Card className="p-8 text-center sticky top-24">
             <div className="relative w-32 h-32 mx-auto mb-6 group">
-              <div className="w-full h-full rounded-full bg-white/10 flex items-center justify-center text-white overflow-hidden border border-white/10">
+              <div className="avatar-glow"></div>
+              <div className="w-full h-full rounded-full bg-[#0A0A0B] flex items-center justify-center text-white overflow-hidden border-2 border-transparent" style={{ backgroundClip: 'padding-box' }}>
                 {user.avatarUrl ? (
                   <img src={user.avatarUrl} alt={user.name} width="128" height="128" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
-                  <User size={64} className="opacity-20" />
+                  <User size={64} className="opacity-40" />
                 )}
               </div>
               <button aria-label="Change profile picture" className="absolute bottom-0 right-0 p-2 bg-white text-black rounded-full shadow-xl hover:scale-110 transition-transform">
@@ -82,18 +83,19 @@ const Profile = () => {
           {/* Stats Grid */}
           <div className="grid grid-cols-3 gap-4">
             {stats.map((stat, i) => (
-              <Card key={i} className="p-6 text-center">
-                <div className="text-white/20 mb-2 flex justify-center">
-                  <stat.icon size={18} />
+              <div key={i} className="glass-card p-6 text-center relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="text-cyan-400 mb-3 flex justify-center drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
+                  <stat.icon size={22} />
                 </div>
-                <div className="text-xl font-medium text-white mb-1">{stat.value}</div>
-                <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{stat.label}</div>
-              </Card>
+                <div className="text-2xl font-bold text-white mb-1 tracking-tight">{stat.value}</div>
+                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{stat.label}</div>
+              </div>
             ))}
           </div>
 
           {/* Identity Section */}
-          <Card className="p-8">
+          <div className="glass-card p-8">
             <h2 className="text-sm font-bold text-white uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
               <Shield size={16} className="text-white/20" /> Identity Information
             </h2>
@@ -125,19 +127,19 @@ const Profile = () => {
                 <Badge variant="primary">{user.role}</Badge>
               </div>
             </div>
-          </Card>
+          </div>
 
           {/* Recent Activity Placeholder */}
-          <Card className="p-8">
-            <h2 className="text-sm font-bold text-white uppercase tracking-[0.2em] mb-8">Recent Workflows</h2>
+          <div className="glass-card p-8">
+            <h2 className="text-sm font-bold text-white uppercase tracking-[0.2em] mb-8 text-gradient">Recent Workflows</h2>
             <div className="space-y-6">
               {[
                 { event: 'RAG Knowledge Ingestion', date: 'Oct 24, 2025', status: 'Active' },
                 { event: 'Data Analysis Pipeline', date: 'Sep 12, 2025', status: 'Completed' },
               ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 group hover:bg-white/5 transition-all">
+                <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 group hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/40">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:text-purple-400 transition-colors">
                       <BrainCircuit size={18} />
                     </div>
                     <div>
@@ -152,7 +154,7 @@ const Profile = () => {
                 View Complete History
               </button>
             </div>
-          </Card>
+          </div>
 
         </div>
       </div>

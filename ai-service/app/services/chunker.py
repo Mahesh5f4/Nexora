@@ -6,7 +6,7 @@ class CharacterChunker:
     with an overlap of `chunk_overlap` characters. 
     It attempts to split gracefully on newlines or spaces if possible.
     """
-    def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 200):
+    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 50):
         if chunk_size <= 0:
             raise ValueError("chunk_size must be greater than 0")
         if chunk_overlap >= chunk_size:

@@ -8,7 +8,6 @@ const Footer = () => {
     navigation: [
       { label: 'Discover', to: '/' },
       { label: 'Workspace', to: '/workspace' },
-      { label: 'About', to: '/about' },
     ],
     legal: [
       { label: 'Terms', to: '/terms' },
@@ -68,8 +67,11 @@ const Footer = () => {
       </div>
 
       <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <p className="text-white/30 text-xs font-medium">
-          © {currentYear} ThinkAction Ai. All rights reserved.
+        <p className="text-white/30 text-xs font-medium text-center sm:text-left">
+          © {currentYear} ThinkAction Ai. All rights reserved. <br className="sm:hidden" />
+          <span className="sm:ml-2 mt-1 sm:mt-0 inline-block">
+            Developed by <a href="https://www.linkedin.com/in/kondampudimaheshbabu" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white transition-colors underline underline-offset-2">Mahesh</a>
+          </span>
         </p>
         <div className="flex items-center gap-2 text-emerald-500/80 text-xs font-medium">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

@@ -160,6 +160,29 @@ _ANTI_ANALYZE_PATTERNS = [
 def _matches_any(text: str, patterns: list[str]) -> bool:
     return any(re.search(p, text) for p in patterns)
 
+_FACTUAL_INDICATORS = [
+    r"\b(who|what|when|where|which)\b.*\b(is|are|was|were|will)\b",
+    r"\bgive\b.*\b(me|the|ipl|world|winner|result)\b",
+    r"\btell\b.*\b(me|the)\b",
+    r"\blist\b.*\b(the|all|top)\b",
+]
+
+_CONCEPTUAL_INDICATORS = [
+    r"\bhow (to|do|does|can|should)\b",
+    r"\bexplain\b",
+    r"\bwhat is the (difference|meaning|definition)\b",
+    r"\btutorial\b",
+    r"\bhelp me (understand|learn)\b",
+    r"\bwrite (a|an|me|the)\b",
+    r"\bgenerate\b",
+    r"\bcreate (a|an)\b",
+    r"\bwhat is\b.*\bin programming\b",
+    r"^who are you\??$",
+    r"^who is this\??$",
+    r"^who made you\??$",
+    r"^who created you\??$",
+]
+
 
 def _detect_analysis_intent(query_lower: str) -> bool:
     """
@@ -256,8 +279,9 @@ class AgentGraph:
             # Research defaults to web if not a purely conceptual question
             if not has_rag_intent and not has_code_intent and not has_mem_intent:
                 # E.g. "What is Redis" might be LLM only, but "Latest Redis" is Web.
-                # If they explicitly ask a generic question, we might skip web, but if there's any doubt, research uses web.
-                needs_web = True
+                # If they explicitly ask a generic conceptual question (like "who are you"), skip web.
+                if not _matches_any(query_lower, _CONCEPTUAL_INDICATORS):
+                    needs_web = True
                 
         elif mode == "PLAN":
             # Plan relies heavily on LLM and memory unless explicitly asked for docs/web
@@ -273,27 +297,6 @@ class AgentGraph:
         # factual (likely needs current data) vs conceptual (LLM can answer).
         # This catches edge cases that slip through pattern matching.
         if not needs_rag and not needs_web and not needs_memory and not needs_code:
-            _FACTUAL_INDICATORS = [
-                r"\b(who|what|when|where|which)\b.*\b(is|are|was|were|will)\b",
-                r"\bgive\b.*\b(me|the|ipl|world|winner|result)\b",
-                r"\btell\b.*\b(me|the)\b",
-                r"\blist\b.*\b(the|all|top)\b",
-            ]
-            _CONCEPTUAL_INDICATORS = [
-                r"\bhow (to|do|does|can|should)\b",
-                r"\bexplain\b",
-                r"\bwhat is the (difference|meaning|definition)\b",
-                r"\btutorial\b",
-                r"\bhelp me (understand|learn)\b",
-                r"\bwrite (a|an|me|the)\b",
-                r"\bgenerate\b",
-                r"\bcreate (a|an)\b",
-                r"\bwhat is\b.*\bin programming\b",
-                r"^who are you\??$",
-                r"^who is this\??$",
-                r"^who made you\??$",
-                r"^who created you\??$",
-            ]
             is_factual = _matches_any(query_lower, _FACTUAL_INDICATORS)
             is_conceptual = _matches_any(query_lower, _CONCEPTUAL_INDICATORS)
 

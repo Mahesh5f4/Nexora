@@ -14,8 +14,8 @@ import java.time.LocalDateTime;
 public class Conversation {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;

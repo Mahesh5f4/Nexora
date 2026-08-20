@@ -63,7 +63,7 @@ public class ConversationService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    private Conversation getConversationSecurely(Long id) {
+    private Conversation getConversationSecurely(String id) {
         User user = getAuthenticatedUser();
         return conversationRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new RuntimeException("Conversation not found or unauthorized"));
@@ -79,20 +79,20 @@ public class ConversationService {
     }
 
     @Transactional(readOnly = true)
-    public ConversationDto getConversation(Long id) {
+    public ConversationDto getConversation(String id) {
         Conversation conversation = getConversationSecurely(id);
         return mapToDto(conversation);
     }
 
     @Transactional(readOnly = true)
-    public Page<MessageDto> getMessages(Long conversationId, Pageable pageable) {
+    public Page<MessageDto> getMessages(String conversationId, Pageable pageable) {
         getConversationSecurely(conversationId); // verify ownership
         return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId, pageable)
                 .map(this::mapToDto);
     }
     
     @Transactional
-    public ConversationDto renameConversation(Long conversationId, String newTitle) {
+    public ConversationDto renameConversation(String conversationId, String newTitle) {
         Conversation conversation = getConversationSecurely(conversationId);
         conversation.setTitle(newTitle);
         conversation = conversationRepository.save(conversation);
@@ -111,14 +111,14 @@ public class ConversationService {
     }
 
     @Transactional
-    public void deleteConversation(Long id) {
+    public void deleteConversation(String id) {
         Conversation conversation = getConversationSecurely(id);
         messageRepository.deleteAllByConversationId(conversation.getId());
         conversationRepository.delete(conversation);
     }
 
     // No @Transactional here so we can save user message in a separate tx, or we can just rely on the repository's own transactional save for the user message, and not roll it back when the AI call fails.
-    public MessageDto sendMessage(Long conversationId, com.EventmanagementbyMahesh.event.ai.chat.dto.SendMessageRequest request) {
+    public MessageDto sendMessage(String conversationId, com.EventmanagementbyMahesh.event.ai.chat.dto.SendMessageRequest request) {
         Conversation conversation = getConversationSecurely(conversationId);
         String content = request.getContent();
 
@@ -165,7 +165,7 @@ public class ConversationService {
         return mapToDto(assistantMessage);
     }
 
-    public SseEmitter streamMessage(Long conversationId, com.EventmanagementbyMahesh.event.ai.chat.dto.SendMessageRequest request) {
+    public SseEmitter streamMessage(String conversationId, com.EventmanagementbyMahesh.event.ai.chat.dto.SendMessageRequest request) {
         Conversation conversation = getConversationSecurely(conversationId);
         String content = request.getContent();
 
@@ -264,13 +264,13 @@ public class ConversationService {
         return emitter;
     }
 
-    private String buildConversationContext(Long conversationId, String currentContent) {
+    private String buildConversationContext(String conversationId, String currentContent) {
         // This method is no longer used, context is built by Python
         return "";
     }
 
     @Transactional
-    public ConversationDto generateTitle(Long conversationId, String firstMessage) {
+    public ConversationDto generateTitle(String conversationId, String firstMessage) {
         Conversation conversation = getConversationSecurely(conversationId);
         
         // Only generate title if it's still named "New conversation"
@@ -331,3 +331,4 @@ public class ConversationService {
         return dto;
     }
 }
+

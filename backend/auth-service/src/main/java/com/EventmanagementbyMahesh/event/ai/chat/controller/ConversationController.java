@@ -33,7 +33,7 @@ public class ConversationController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ConversationDto> getConversation(@PathVariable Long id) {
+    public ResponseEntity<ConversationDto> getConversation(@PathVariable String id) {
         return ResponseEntity.ok(conversationService.getConversation(id));
     }
 
@@ -43,33 +43,33 @@ public class ConversationController {
     }
 
     @GetMapping("/{id}/messages")
-    public ResponseEntity<Page<MessageDto>> getMessages(@PathVariable Long id, @PageableDefault(sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+    public ResponseEntity<Page<MessageDto>> getMessages(@PathVariable String id, @PageableDefault(sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(conversationService.getMessages(id, pageable));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ConversationDto> renameConversation(@PathVariable Long id, @Valid @RequestBody RenameConversationRequest request) {
+    public ResponseEntity<ConversationDto> renameConversation(@PathVariable String id, @Valid @RequestBody RenameConversationRequest request) {
         return ResponseEntity.ok(conversationService.renameConversation(id, request.getNewTitle()));
     }
 
     @PostMapping("/{id}/messages")
-    public ResponseEntity<MessageDto> sendMessage(@PathVariable Long id, @Valid @RequestBody SendMessageRequest request) {
+    public ResponseEntity<MessageDto> sendMessage(@PathVariable String id, @Valid @RequestBody SendMessageRequest request) {
         return ResponseEntity.ok(conversationService.sendMessage(id, request));
     }
 
     @PostMapping("/{id}/messages/stream")
-    public SseEmitter streamMessage(@PathVariable Long id, @Valid @RequestBody SendMessageRequest request) {
+    public SseEmitter streamMessage(@PathVariable String id, @Valid @RequestBody SendMessageRequest request) {
         return conversationService.streamMessage(id, request);
     }
 
     @PostMapping("/{id}/generate-title")
-    public ResponseEntity<ConversationDto> generateTitle(@PathVariable Long id, @RequestBody java.util.Map<String, String> request) {
+    public ResponseEntity<ConversationDto> generateTitle(@PathVariable String id, @RequestBody java.util.Map<String, String> request) {
         String firstMessage = request.getOrDefault("prompt", "");
         return ResponseEntity.ok(conversationService.generateTitle(id, firstMessage));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteConversation(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteConversation(@PathVariable String id) {
         conversationService.deleteConversation(id);
         return ResponseEntity.noContent().build();
     }

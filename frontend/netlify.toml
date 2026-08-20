@@ -1,15 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Proxy /api requests to the EC2 backend to avoid Mixed Content errors
 [[redirects]]
   from = "/api/*"
-  to = "http://13.48.56.253/api/:splat"
+  to = "http://56.228.22.98/api/:splat"
   status = 200
   force = true
 
-[[redirects]]
-  from = "/ws-booking/*"
-  to = "http://13.48.56.253/ws-booking/:splat"
-  status = 200
-  force = true
-
+# React Router catch-all
 [[redirects]]
   from = "/*"
   to = "/index.html"

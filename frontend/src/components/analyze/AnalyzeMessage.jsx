@@ -6,6 +6,7 @@ import CodeBlock from '../chat/CodeBlock';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
 import { User, BrainCircuit, CheckCircle2, AlertTriangle, Loader2, Copy, Check } from 'lucide-react';
 import { AGENT_CONFIG } from '../../config/agentConfig';
+import { copyToClipboard } from '../../utils/clipboard';
 
 const markdownComponents = {
   code({ node, inline, className, children, ...props }) {
@@ -43,7 +44,7 @@ const AnalyzeMessage = React.memo(({ message }) => {
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content);
+    copyToClipboard(message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

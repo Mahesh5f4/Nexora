@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { User, BrainCircuit, Globe, FileText, ExternalLink, Copy, Check, RefreshCw, MoreHorizontal } from 'lucide-react';
 import CodeBlock from './CodeBlock';
+import { copyToClipboard } from '../../utils/clipboard';
 
 /**
  * §15 compliance:
@@ -50,7 +51,7 @@ const MessageItem = ({ message, isStreaming, onStreamingComplete }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content);
+    copyToClipboard(message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

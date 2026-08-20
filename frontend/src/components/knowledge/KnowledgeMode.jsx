@@ -7,6 +7,7 @@ import { useAgentStream } from '../../hooks/useAgentStream';
 import CodeBlock from '../chat/CodeBlock';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
 import { documentService } from '../../services/api';
+import { copyToClipboard } from '../../utils/clipboard';
 
 const markdownComponents = {
   p({ node, children, ...props }) {
@@ -58,7 +59,7 @@ const MessageBubble = React.memo(({ msg }) => {
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(msg.content);
+    copyToClipboard(msg.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

@@ -3,6 +3,7 @@ import { generateService } from '../../services/api';
 import { Loader2, Zap, Copy, Check, ChevronDown, Wand2, FileText, Calendar, DollarSign, Megaphone } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { copyToClipboard } from '../../utils/clipboard';
 
 const TYPES = [
   { id: 'GENERAL', label: 'General Content', icon: FileText },
@@ -54,7 +55,7 @@ const Generate = () => {
 
   const handleCopy = () => {
     if (result?.content) {
-      navigator.clipboard.writeText(result.content);
+      copyToClipboard(result.content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }

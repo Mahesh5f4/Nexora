@@ -7,6 +7,7 @@ import { useAgentStream } from '../../hooks/useAgentStream';
 import CodeBlock from '../chat/CodeBlock';
 import AgentInput from '../chat/AgentInput';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
+import { copyToClipboard } from '../../utils/clipboard';
 
 /**
  * §7 Chat output schema:
@@ -66,7 +67,7 @@ const MessageBubble = React.memo(({ msg }) => {
   const isUser = msg.sender === 'USER';
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(msg.content);
+    copyToClipboard(msg.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

@@ -11,6 +11,7 @@ import CodeBlock from '../chat/CodeBlock';
 import AgentInput from '../chat/AgentInput';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
 import { AGENT_CONFIG } from '../../config/agentConfig';
+import { copyToClipboard } from '../../utils/clipboard';
 
 const markdownComponents = {
   // Render p as div — prevents invalid <div> inside <p> when markdown contains code blocks
@@ -72,7 +73,7 @@ const PlanMessage = React.memo(({ msg }) => {
   const config = AGENT_CONFIG.PLAN;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(msg.content);
+    copyToClipboard(msg.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

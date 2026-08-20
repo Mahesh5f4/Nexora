@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Copy, Check } from 'lucide-react';
+import { copyToClipboard } from '../../utils/clipboard';
 
 const CodeBlock = ({ inline, className, children, ...props }) => {
   const [copied, setCopied] = useState(false);
@@ -10,7 +11,7 @@ const CodeBlock = ({ inline, className, children, ...props }) => {
   const codeContent = String(children).replace(/\n$/, '');
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(codeContent);
+    copyToClipboard(codeContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

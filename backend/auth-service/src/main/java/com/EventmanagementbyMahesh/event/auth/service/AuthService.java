@@ -20,9 +20,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -76,7 +76,8 @@ public class AuthService {
         }
 
         // Generate OTP for regular users
-        String otp = String.format("%06d", new Random().nextInt(999999));
+        SecureRandom secureRandom = new SecureRandom();
+        String otp = String.format("%06d", secureRandom.nextInt(1000000));
         user.setOtp(otp);
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
         user.setLastActive(LocalDateTime.now());
@@ -162,7 +163,8 @@ public class AuthService {
             User user = repo.findByEmail(req.getEmail())
                     .orElseThrow(() -> new ResourceNotFoundException("User with email " + req.getEmail() + " not found"));
 
-            String otp = String.format("%06d", new Random().nextInt(999999));
+            SecureRandom secureRandom = new SecureRandom();
+            String otp = String.format("%06d", secureRandom.nextInt(1000000));
             user.setOtp(otp);
             user.setOtpExpiry(LocalDateTime.now().plusMinutes(10)); // 10 minutes for password reset
             repo.save(user);

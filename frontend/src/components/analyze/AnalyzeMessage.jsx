@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import CodeBlock from '../chat/CodeBlock';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
-import { User, BrainCircuit, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { User, BrainCircuit, CheckCircle2, AlertTriangle, Loader2, Copy, Check } from 'lucide-react';
 import { AGENT_CONFIG } from '../../config/agentConfig';
 
 const markdownComponents = {
@@ -39,6 +39,14 @@ const markdownComponents = {
 
 const AnalyzeMessage = React.memo(({ message }) => {
   const isUser = message.sender === 'USER';
+  const config = AGENT_CONFIG.ANALYZE;
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   
   // Parse validation tags from metadata if they exist
   const validationTag = useMemo(() => {
@@ -107,6 +115,29 @@ const AnalyzeMessage = React.memo(({ message }) => {
           <div className={`mt-2 flex items-center space-x-1.5 px-2.5 py-1 rounded border text-xs font-medium ${validationTag.bg} ${validationTag.color}`}>
             <validationTag.icon className="w-3.5 h-3.5" />
             <span>{validationTag.text}</span>
+          </div>
+        )}
+
+        {/* Action Bar (Copy Button) */}
+        {!isUser && !message.streaming && (
+          <div className="mt-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <button 
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 text-gray-400 hover:text-white transition-all text-xs font-medium"
+              aria-label="Copy response"
+            >
+              {copied ? (
+                <>
+                  <Check size={12} className="text-emerald-400" />
+                  <span className="text-emerald-400">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={12} />
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
           </div>
         )}
       </div>

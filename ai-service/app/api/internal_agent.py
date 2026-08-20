@@ -220,10 +220,17 @@ async def ask_agent_stream(
                     if key in seen_keys:
                         continue
                     seen_keys.add(key)
-                    if ev.source_type == "web":
-                        yield f"event: source\ndata: {json.dumps({'title': ev.title, 'url': ev.url, 'domain': ev.source_domain})}\n\n"
-                    elif ev.source_type == "document":
-                        yield f"event: source\ndata: {json.dumps({'title': ev.title, 'url': 'doc', 'domain': ev.title})}\n\n"
+                    
+                    src_data = {
+                        'title': ev.title,
+                        'source_name': ev.title,
+                        'content': ev.content,
+                        'url': ev.url if ev.source_type == "web" else 'doc',
+                        'domain': getattr(ev, 'source_domain', ev.title) or ev.title,
+                        'source_type': ev.source_type,
+                        'relevance_score': ev.score
+                    }
+                    yield f"event: source\ndata: {json.dumps(src_data)}\n\n"
 
                 # Check if we have a final_request to stream
                 if "final_request" in final_state and final_state["final_request"]:

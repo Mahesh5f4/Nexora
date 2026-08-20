@@ -30,11 +30,13 @@ class LLMGateway:
     def __init__(self, semantic_cache: SemanticCache = None):
         api_key = os.getenv("OPENROUTER_API_KEY", "")
         if not api_key:
-            logger.warning("OPENROUTER_API_KEY is missing from environment variables!")
+            logger.error("OPENROUTER_API_KEY is missing from environment variables!")
+            raise ValueError("OPENROUTER_API_KEY is missing from environment variables!")
 
         self.llm = ChatOpenAI(
             model="openai/gpt-4o-mini",
             api_key=api_key,
+            openai_api_key=api_key,
             base_url="https://openrouter.ai/api/v1",
             max_retries=2
         )

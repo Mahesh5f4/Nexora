@@ -74,7 +74,7 @@ class ConversationServiceSourceTest {
         ReflectionTestUtils.setField(conversationService, "maxContextMessages", 10);
         
         testUser = new User();
-        ReflectionTestUtils.setField(testUser, "id", 1L);
+        ReflectionTestUtils.setField(testUser, "id", "1");
         testUser.setEmail("test@example.com");
 
         testConversation = new Conversation();
@@ -95,11 +95,11 @@ class ConversationServiceSourceTest {
     @Test
     void testAgentResponseWithZeroSources() {
         mockSecurityContext();
-        when(conversationRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testConversation));
+        when(conversationRepository.findByIdAndUserId(10L, "1")).thenReturn(Optional.of(testConversation));
         
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> {
             Message m = i.getArgument(0);
-            ReflectionTestUtils.setField(m, "id", 100L);
+            ReflectionTestUtils.setField(m, "id", "100");
             return m;
         });
 
@@ -118,11 +118,11 @@ class ConversationServiceSourceTest {
     @Test
     void testAgentResponseWithOneRagSource() {
         mockSecurityContext();
-        when(conversationRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testConversation));
+        when(conversationRepository.findByIdAndUserId(10L, "1")).thenReturn(Optional.of(testConversation));
         
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> {
             Message m = i.getArgument(0);
-            ReflectionTestUtils.setField(m, "id", 100L);
+            ReflectionTestUtils.setField(m, "id", "100");
             return m;
         });
 
@@ -144,11 +144,11 @@ class ConversationServiceSourceTest {
     @Test
     void testAgentResponseWithOneWebSource() {
         mockSecurityContext();
-        when(conversationRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testConversation));
+        when(conversationRepository.findByIdAndUserId(10L, "1")).thenReturn(Optional.of(testConversation));
         
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> {
             Message m = i.getArgument(0);
-            ReflectionTestUtils.setField(m, "id", 100L);
+            ReflectionTestUtils.setField(m, "id", "100");
             return m;
         });
 
@@ -170,11 +170,11 @@ class ConversationServiceSourceTest {
     @Test
     void testAgentResponseWithMixedSources() {
         mockSecurityContext();
-        when(conversationRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testConversation));
+        when(conversationRepository.findByIdAndUserId(10L, "1")).thenReturn(Optional.of(testConversation));
         
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> {
             Message m = i.getArgument(0);
-            ReflectionTestUtils.setField(m, "id", 100L);
+            ReflectionTestUtils.setField(m, "id", "100");
             return m;
         });
 
@@ -196,13 +196,13 @@ class ConversationServiceSourceTest {
     @Test
     void testSourcesArePersistedWithAssistantMessage() {
         mockSecurityContext();
-        when(conversationRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testConversation));
+        when(conversationRepository.findByIdAndUserId(10L, "1")).thenReturn(Optional.of(testConversation));
         
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
         
         when(messageRepository.save(messageCaptor.capture())).thenAnswer(i -> {
             Message m = i.getArgument(0);
-            ReflectionTestUtils.setField(m, "id", 100L);
+            ReflectionTestUtils.setField(m, "id", "100");
             return m;
         });
 
@@ -227,10 +227,10 @@ class ConversationServiceSourceTest {
     @Test
     void testHistoricalMessageWithoutSourcesStillWorksAndPagination() {
         mockSecurityContext();
-        when(conversationRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(testConversation));
+        when(conversationRepository.findByIdAndUserId(10L, "1")).thenReturn(Optional.of(testConversation));
         
         Message historicalMsg = new Message(testConversation, MessageRole.ASSISTANT, "Old answer");
-        ReflectionTestUtils.setField(historicalMsg, "id", 99L);
+        ReflectionTestUtils.setField(historicalMsg, "id", "99");
         // sources is intentionally left null, like in old DB records
         historicalMsg.setSources(null); 
         
@@ -252,14 +252,15 @@ class ConversationServiceSourceTest {
     void testUserCannotAccessOtherUserConversationSources() {
         mockSecurityContext();
         // Trying to access conversation not owned by the user
-        when(conversationRepository.findByIdAndUserId(99L, 1L)).thenReturn(Optional.empty());
+        when(conversationRepository.findByIdAndUserId("99", "1")).thenReturn(Optional.empty());
         
         assertThrows(RuntimeException.class, () -> {
-            conversationService.sendMessage(99L, createRequest("Hello", false));
+            conversationService.sendMessage("99", createRequest("Hello", false));
         });
         
         assertThrows(RuntimeException.class, () -> {
-            conversationService.getMessages(99L, PageRequest.of(0, 10));
+            conversationService.getMessages("99", PageRequest.of(0, 10));
         });
     }
 }
+

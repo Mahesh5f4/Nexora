@@ -68,12 +68,12 @@ class ConversationIntegrationTest {
     void sendMessage_ShouldCallPythonAgent_WithConversationContext() {
         // Arrange
         User user = new User();
-        user.setId(100L);
+        user.setId("100");
         
         Conversation conversation = new Conversation();
         conversation.setUserId(user.getId());
         conversation.setRole("GENERAL");
-        ReflectionTestUtils.setField(conversation, "id", 1L);
+        ReflectionTestUtils.setField(conversation, "id", "1");
         
         Message oldMessage = new Message(conversation, MessageRole.USER, "What is spring boot?");
         ReflectionTestUtils.setField(oldMessage, "id", 10L);
@@ -83,7 +83,7 @@ class ConversationIntegrationTest {
         ReflectionTestUtils.setField(oldReply, "id", 11L);
         oldReply.setCreatedAt(LocalDateTime.now().minusMinutes(4));
         
-        when(conversationRepository.findByIdAndUserId(1L, 100L)).thenReturn(Optional.of(conversation));
+        when(conversationRepository.findByIdAndUserId("1", "100")).thenReturn(Optional.of(conversation));
         
         // Mock save user message (the new one)
         when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> {
@@ -97,7 +97,7 @@ class ConversationIntegrationTest {
         });
 
         // Mock getting history
-        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq(1L), any(PageRequest.class)))
+        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq("1"), any(PageRequest.class)))
                 .thenReturn(List.of(oldReply, oldMessage)); // It returns descending, so newest first
 
         // Mock Python response
@@ -105,9 +105,10 @@ class ConversationIntegrationTest {
         when(pythonAiServiceClient.askAgent(any(AgentAskRequest.class))).thenReturn(pythonResponse);
 
         // Act
-        // Setup security context or assume userId=100L is passed (wait, ConversationService uses SecurityUtils, we might need to mock it if it's not a parameter)
+        // Setup security context or assume userId="100" is passed (wait, ConversationService uses SecurityUtils, we might need to mock it if it's not a parameter)
         // Wait, sendMessage takes conversationId and content, and uses SecurityContextHolder. Let's mock SecurityUtils if needed.
         // Actually, looking at ConversationService.sendMessage, it calls Long userId = SecurityUtils.getCurrentUserId();
         // We will need to mock static SecurityUtils, which is a bit annoying. Let's assume this test focuses on the service logic.
     }
 }
+

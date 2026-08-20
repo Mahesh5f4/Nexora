@@ -28,7 +28,7 @@ COPY auth-service/src ./auth-service/src
 RUN mvn clean package \
     -pl auth-service \
     -am \
-    -DskipTests \
+    -Dmaven.test.skip=true \
     --no-transfer-progress
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────

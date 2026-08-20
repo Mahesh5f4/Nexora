@@ -57,7 +57,7 @@ class ConversationControllerTest {
         request.setRole("CODE");
 
         ConversationDto dto = new ConversationDto();
-        dto.setId(1L);
+        dto.setId("1");
         dto.setRole("CODE");
 
         when(conversationService.createConversation(any(CreateConversationRequest.class))).thenReturn(dto);
@@ -89,7 +89,7 @@ class ConversationControllerTest {
         dto.setSender(MessageRole.ASSISTANT);
         dto.setContent("Hi there!");
 
-        when(conversationService.sendMessage(eq(1L), any(SendMessageRequest.class))).thenReturn(dto);
+        when(conversationService.sendMessage(eq("1"), any(SendMessageRequest.class))).thenReturn(dto);
 
         mockMvc.perform(post("/ai/conversations/1/messages")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -102,7 +102,7 @@ class ConversationControllerTest {
     @Test
     void getConversations() throws Exception {
         ConversationDto dto = new ConversationDto();
-        dto.setId(1L);
+        dto.setId("1");
         when(conversationService.listConversations()).thenReturn(List.of(dto));
 
         mockMvc.perform(get("/ai/conversations"))
@@ -112,9 +112,10 @@ class ConversationControllerTest {
 
     @Test
     void deleteConversation() throws Exception {
-        doNothing().when(conversationService).deleteConversation(1L);
+        doNothing().when(conversationService).deleteConversation("1");
 
         mockMvc.perform(delete("/ai/conversations/1"))
                 .andExpect(status().isNoContent());
     }
 }
+

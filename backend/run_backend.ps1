@@ -7,4 +7,4 @@ Get-Content .env | Where-Object { $_ -match '^([^#=]+)=(.*)$' } | ForEach-Object
 [Environment]::SetEnvironmentVariable("AI_INTERNAL_TOKEN", "super-secret-dev-token", "Process")
 
 
-.\mvnw.cmd spring-boot:run -pl auth-service
+.\mvnw.cmd spring-boot:run -pl auth-service -DskipTests

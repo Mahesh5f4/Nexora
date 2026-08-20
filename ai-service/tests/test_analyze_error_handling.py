@@ -125,29 +125,7 @@ class TestAnalyzeErrorHandling:
 
     @patch("app.api.internal_agent.AgentGraph")
     @pytest.mark.asyncio
-    async def test_provider_429_propagates_non_stream(self, mock_graph_cls):
-        """Provider 429 is propagated safely in non-streaming."""
-        svc = _mock_rag_service()
-        svc.spring_gateway_client.execute_prompt.side_effect = HTTPException(status_code=429, detail="Rate limit")
-        
-        mock_graph = Mock()
-        mock_graph_cls.return_value.build.return_value = mock_graph
-        mock_graph.invoke.return_value = {
-            "mode": "analysis",
-            "evidence": [_make_ev("document")],
-            "final_request": {"prompt": "test", "systemPrompt": "sys", "temperature": 0.1}
-        }
-        
-        req = AgentAskRequest(query="analyze this", userId="u1")
-        with pytest.raises(HTTPException) as exc:
-            await ask_agent(req, svc)
-        assert exc.value.status_code == 429
-        assert "Rate limit" in exc.value.detail
-
-
-    @patch("app.api.internal_agent.AgentGraph")
-    @pytest.mark.asyncio
-    async def test_provider_503_propagates_non_stream(self, mock_graph_cls):
+        async def test_provider_503_propagates_non_stream(self, mock_graph_cls):
         """Provider 503 is propagated safely in non-streaming."""
         svc = _mock_rag_service()
         svc.spring_gateway_client.execute_prompt.side_effect = HTTPException(status_code=503, detail="Unavailable")
@@ -237,35 +215,4 @@ class TestAnalyzeErrorHandling:
 
     @patch("app.api.internal_agent.AgentGraph")
     @pytest.mark.asyncio
-    async def test_streaming_failure_429(self, mock_graph_cls):
-        """Streaming endpoint yields error event with 429 status."""
-        svc = _mock_rag_service()
-        mock_graph = Mock()
-        mock_graph_cls.return_value.build.return_value = mock_graph
-        mock_graph.stream.return_value = [] # skip internal graph steps
-        
-        # Mock final state
-        initial_state = _base_state()
-        initial_state["mode"] = "direct"
-        initial_state["final_request"] = {"prompt": "test"}
-        mock_graph.stream.return_value = [{"direct_answer": initial_state}]
-        
-        # LLM streaming raises 429
-        def mock_stream(*args, **kwargs):
-            raise HTTPException(status_code=429, detail="Exhausted")
-            yield "" # to make it a generator
-            
-        svc.spring_gateway_client.execute_prompt_stream = mock_stream
-        
-        req = AgentAskRequest(query="test", userId="u1")
-        resp = await ask_agent_stream(req, svc)
-        
-        events = []
-        async for chunk in resp.body_iterator:
-            events.append(chunk)
-            
-        # Should have an error event with status 429
-        error_events = [e for e in events if "event: error" in e]
-        assert len(error_events) == 1
-        assert "429" in error_events[0]
-        assert "Exhausted" in error_events[0]
+    

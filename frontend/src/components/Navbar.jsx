@@ -19,7 +19,6 @@ const Navbar = () => {
 
   const navLinks = useMemo(() => [
     { label: 'Workspace', to: '/workspace', private: true },
-    { label: 'Usage & Quota', to: '/workspace/usage', private: true }
   ], []);
 
   return (

@@ -93,7 +93,6 @@ export const aiService = {
 
   getMessages: (id) => api.get(`/ai/conversations/${id}/messages`),
   deleteConversation: (id) => api.delete(`/ai/conversations/${id}`),
-  getUsage: () => api.get('/ai/usage')
 };
 
 export const documentService = {

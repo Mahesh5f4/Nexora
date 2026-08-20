@@ -183,21 +183,6 @@ async def test_10_fabricated_date():
                 assert "could not be reliably validated" in response.json()["answer"]
 
 @pytest.mark.asyncio
-async def test_11_provider_429():
-    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
-        with patch("app.clients.spring_gateway_client.SpringAiGatewayClient.execute_prompt") as mock_exec:
-            def side_effect(ai_request, *args, **kwargs):
-                if "evaluator" in ai_request.systemPrompt.lower():
-                    return mock_llm_response('{"sufficient": true, "reason": "OK", "missing_information": []}')
-                raise HTTPException(status_code=429, detail="Rate limit")
-            mock_exec.side_effect = side_effect
-            with patch("app.services.rag_service.RAGService.search_similar") as mock_search:
-                mock_search.side_effect = mock_search_similar_side_effect("Valid data")
-                payload = {"query": "Analyze this in the document.", "userId": "u1"}
-                response = await client.post("/internal/agent/ask", json=payload)
-                assert response.status_code == 429
-
-@pytest.mark.asyncio
 async def test_12_provider_503():
     async with httpx.AsyncClient(app=app, base_url="http://test") as client:
         with patch("app.clients.spring_gateway_client.SpringAiGatewayClient.execute_prompt") as mock_exec:

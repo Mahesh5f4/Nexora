@@ -5,7 +5,6 @@ import com.EventmanagementbyMahesh.event.auth.admin.dto.AdminUserDto;
 import com.EventmanagementbyMahesh.event.auth.entity.User;
 import com.EventmanagementbyMahesh.event.auth.repository.UserRepository;
 import com.EventmanagementbyMahesh.event.ai.chat.repository.MessageRepository;
-import com.EventmanagementbyMahesh.event.ai.usage.repository.UsageSessionRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,22 +15,19 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
-    private final UsageSessionRepository usageSessionRepository;
 
     public AdminService(
             UserRepository userRepository,
-            MessageRepository messageRepository,
-            UsageSessionRepository usageSessionRepository
+            MessageRepository messageRepository
     ) {
         this.userRepository = userRepository;
         this.messageRepository = messageRepository;
-        this.usageSessionRepository = usageSessionRepository;
     }
 
     public AdminStatsResponse getStats() {
         long totalUsers = userRepository.count();
         long totalMessages = messageRepository.count();
-        long totalTokensUsed = usageSessionRepository.sumTokensUsed();
+        long totalTokensUsed = 0;
 
         return AdminStatsResponse.builder()
                 .totalUsers(totalUsers)

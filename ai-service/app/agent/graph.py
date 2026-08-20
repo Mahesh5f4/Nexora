@@ -1099,9 +1099,7 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
         reason = state.get("evaluation_reason", "Unknown evaluator failure")
         status = state.get("evaluation_status", "UNKNOWN")
         
-        if status == "USAGE_EXHAUSTED":
-            raise HTTPException(status_code=429, detail=reason)
-            
+
         state["answer"] = f"An infrastructure error occurred during evidence evaluation: {reason}"
         state["mode"] = "error"
         return state

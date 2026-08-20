@@ -38,7 +38,7 @@ class EvaluationStatus(str, Enum):
     EVALUATOR_UNAVAILABLE = "EVALUATOR_UNAVAILABLE"
     EVALUATOR_TIMEOUT = "EVALUATOR_TIMEOUT"
     EVALUATOR_INVALID_RESPONSE = "EVALUATOR_INVALID_RESPONSE"
-    USAGE_EXHAUSTED = "USAGE_EXHAUSTED"
+
 
 class EvaluationResult(BaseModel):
     status: EvaluationStatus
@@ -160,15 +160,7 @@ class EvidenceEvaluator:
             return self._parse_evaluation_response(response.content)
 
         except Exception as e:
-            status_code = getattr(e, 'status_code', 500)
-            if status_code == 429:
-                logger.warning("Evidence evaluator LLM call failed: Usage exhausted (HTTP 429).")
-                return EvaluationResult(
-                    status=EvaluationStatus.USAGE_EXHAUSTED,
-                    reason="Usage limit reached. Please try again after the session resets.",
-                    missing_information=[]
-                )
-            
+
             logger.warning(f"Evidence evaluator LLM call failed: {e}. Falling through to SUFFICIENT.")
             return EvaluationResult(
                 status=EvaluationStatus.SUFFICIENT,

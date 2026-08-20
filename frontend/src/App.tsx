@@ -22,7 +22,6 @@ const Settings = lazy(() => import('./pages/Settings'));
 // Workspace Pages
 const Workspace = lazy(() => import('./pages/workspace/Workspace'));
 const Knowledge = lazy(() => import('./pages/workspace/Knowledge'));
-const Usage = lazy(() => import('./pages/workspace/Usage'));
 
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
@@ -126,7 +125,7 @@ function App() {
                   <Route path="/workspace" element={<PrivateRoute><Workspace /></PrivateRoute>} />
                   <Route path="/workspace/chat/:id" element={<PrivateRoute><Workspace /></PrivateRoute>} />
                   <Route path="/workspace/knowledge" element={<PrivateRoute><Knowledge /></PrivateRoute>} />
-                  <Route path="/workspace/usage" element={<PrivateRoute><Usage /></PrivateRoute>} />
+
                   <Route path="/workspace/analyze" element={<Navigate to="/workspace" replace />} />
                   <Route path="/workspace/generate" element={<Navigate to="/workspace" replace />} />
                   <Route path="/workspace/research" element={<Navigate to="/workspace" replace />} />

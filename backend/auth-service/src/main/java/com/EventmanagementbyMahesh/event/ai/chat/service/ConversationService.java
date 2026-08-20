@@ -148,8 +148,6 @@ public class ConversationService {
         AgentAskResponse response;
         try {
             response = pythonAiServiceClient.askAgent(agentRequest);
-        } catch (com.EventmanagementbyMahesh.event.ai.exception.UsageExhaustedException e) {
-            throw e;
         } catch (Exception e) {
             // User message is already saved, and since this method is NOT @Transactional, it won't rollback!
             throw new com.EventmanagementbyMahesh.event.ai.exception.ProviderException("Unable to get a response right now. Please try again.");

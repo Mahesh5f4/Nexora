@@ -79,9 +79,7 @@ const Research = () => {
       }
     } catch (err) {
       if (currentSequence === requestSequenceRef.current) {
-        if (err.response?.status === 429) {
-          setError("Usage limit reached. Please try again after your current session resets.");
-        } else if (err.response?.status === 401) {
+        if (err.response?.status === 401) {
           setError("Your session has expired. Please log in again.");
         } else if (err.response?.data?.message) {
           setError(err.response.data.message);

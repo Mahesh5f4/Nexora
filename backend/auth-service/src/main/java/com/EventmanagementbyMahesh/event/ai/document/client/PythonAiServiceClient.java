@@ -123,9 +123,7 @@ public class PythonAiServiceClient {
             return response.getBody();
         } catch (org.springframework.web.client.HttpStatusCodeException e) {
             org.slf4j.LoggerFactory.getLogger(PythonAiServiceClient.class).error("AI Service Error in askQuestion: {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
-            if (e.getStatusCode() == org.springframework.http.HttpStatus.TOO_MANY_REQUESTS) {
-                throw new com.EventmanagementbyMahesh.event.ai.exception.UsageExhaustedException("Usage limit reached. Please try again after the session resets.", null);
-            }
+
             if (e.getStatusCode() == org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE) {
                 throw new com.EventmanagementbyMahesh.event.ai.exception.ProviderException("AI service temporarily unavailable");
             }
@@ -166,9 +164,7 @@ public class PythonAiServiceClient {
             return response.getBody();
         } catch (org.springframework.web.client.HttpStatusCodeException e) {
             org.slf4j.LoggerFactory.getLogger(PythonAiServiceClient.class).error("AI Service Error: {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
-            if (e.getStatusCode() == org.springframework.http.HttpStatus.TOO_MANY_REQUESTS) {
-                throw new com.EventmanagementbyMahesh.event.ai.exception.UsageExhaustedException("Usage limit reached. Please try again after the session resets.", null);
-            }
+
             throw new RuntimeException("AI service failed: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(PythonAiServiceClient.class).error("AI Service Error: ", e);
@@ -223,11 +219,7 @@ public class PythonAiServiceClient {
                     if (clientHttpResponse.getStatusCode().isError()) {
                         String errorBody = new String(clientHttpResponse.getBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
                         org.slf4j.LoggerFactory.getLogger(PythonAiServiceClient.class).error("AI Service Error: {} - {}", clientHttpResponse.getStatusCode(), errorBody);
-                        if (clientHttpResponse.getStatusCode() == org.springframework.http.HttpStatus.TOO_MANY_REQUESTS) {
-                            onError.accept(new com.EventmanagementbyMahesh.event.ai.exception.UsageExhaustedException("Usage limit reached.", null));
-                        } else {
-                            onError.accept(new RuntimeException("AI service streaming failed: " + errorBody));
-                        }
+                        onError.accept(new RuntimeException("AI service streaming failed: " + errorBody));
                         return null;
                     }
 

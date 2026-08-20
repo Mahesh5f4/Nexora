@@ -289,6 +289,10 @@ class AgentGraph:
                 r"\bgenerate\b",
                 r"\bcreate (a|an)\b",
                 r"\bwhat is\b.*\bin programming\b",
+                r"^who are you\??$",
+                r"^who is this\??$",
+                r"^who made you\??$",
+                r"^who created you\??$",
             ]
             is_factual = _matches_any(query_lower, _FACTUAL_INDICATORS)
             is_conceptual = _matches_any(query_lower, _CONCEPTUAL_INDICATORS)

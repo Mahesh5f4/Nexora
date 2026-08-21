@@ -8,7 +8,7 @@
 [![Vector DB](https://img.shields.io/badge/Qdrant-Vector%20DB-FD1660?logo=qdrant&logoColor=white)](https://qdrant.tech/)
 [![Deployment](https://img.shields.io/badge/Docker-EC2-2496ED?logo=docker&logoColor=white)](#)
 
-> A highly scalable, unified Agentic AI workspace that integrates distinct cognitive roles (Researcher, Planner, Knowledge Base) with enterprise-grade Retrieval-Augmented Generation (RAG) and real-time web connectivity.
+> A highly scalable, unified Agentic AI workspace. Features a custom **LangGraph-driven orchestrator**, dynamic **multi-agent cognitive roles** (Researcher, Planner, Knowledge Base), continuous **Long-Term Vector Memory**, and enterprise-grade **Retrieval-Augmented Generation (RAG)**.
 
 ---
 
@@ -16,25 +16,48 @@
 
 **ThinkAction AI** solves the fragmentation of modern generative AI tools by providing a single, centralized workspace where users can seamlessly switch between specialized AI agents. 
 
-Rather than relying on generic, zero-shot prompting, the system implements **Agent Roles**. Each role is backed by a dynamically constructed system prompt and specialized tool access (e.g., deep web research via Tavily, web scraping via Firecrawl, or strict semantic document retrieval via Qdrant), orchestrated by a powerful Python microservice and governed by a highly secure Spring Boot API Gateway.
+Rather than relying on generic, zero-shot prompting, the system implements **Agent Roles**. Each role is backed by a dynamically constructed system prompt and specialized tool access, orchestrated by a powerful Python microservice running a **Stateful LangGraph Agent** and governed by a highly secure **Spring Boot API Gateway**.
+
+---
+
+## 🔬 Deep Dive: LangGraph & Cognitive Architecture
+
+To prevent LLM hallucination and provide true reasoning capabilities, the Python AI Service utilizes [LangGraph](https://python.langchain.com/docs/langgraph) to orchestrate a cyclic, self-reflecting agent workflow. 
+
+### The LangGraph State Machine
+Every user request enters a compiled `StateGraph` that manages the execution state (`AgentState`). The graph executes the following nodes:
+
+1. **`classify_question` (Source Decision Layer):** Evaluates the user query against highly optimized RegEx intent patterns (e.g., `_WEB_PATTERNS`, `_CODE_PATTERNS`, `_ANALYZE_PATTERNS`) to deterministically decide what type of retrieval is required (RAG, Web, Memory, or Code). This saves LLM cost by routing accurately before generating tokens.
+2. **`extract_user_memory`:** Intelligently identifies if the user mentioned a new personal fact (e.g., "I am learning Rust"). It instructs the LLM to extract the fact as structured JSON, deduplicates it against old facts (e.g., deleting "I am learning Java"), and seamlessly injects it into Qdrant as a long-term memory vector.
+3. **`collect_initial_evidence`:** A highly parallelized node utilizing Python's `ThreadPoolExecutor` to simultaneously fetch context from Qdrant (RAG), Qdrant (Memory), Tavily/Firecrawl (Web Search), and Local Repositories (Code Search). Context is deduplicated using MD5 content hashing.
+4. **`evaluate_evidence`:** A tiered evaluation engine. 
+   - *Tier-1 (Deterministic)* checks if evidence meets minimum similarity score thresholds.
+   - *Tier-2 (Semantic)* uses the LLM to determine if the retrieved evidence actually answers the user's specific question.
+5. **`refine_query` (The Loop):** If the evaluator determines the evidence is insufficient, this node calculates the *missing information*, generates a highly-targeted new search query, and cycles the LangGraph state back to evidence collection (up to a maximum iteration limit).
+
+### 🧠 Advanced Memory Systems
+The agent employs a three-tier memory architecture to ensure ultra-low latency and profound user personalization:
+
+1. **Short-Term Context (Conversational):** React frontend maintains session state, passing chronological conversation history back to the LangGraph state on every request.
+2. **Long-Term Vector Memory (Qdrant):** The agent constantly builds a psychological profile of the user. Facts extracted during the `extract_user_memory` graph node are embedded and saved to Qdrant with `is_memory: True` metadata. When the user asks "What is my favorite language?", the agent queries Qdrant specifically for user memories and synthesizes the answer.
+3. **Semantic Query Cache (Thread-Safe LRU):** A highly optimized in-memory Python `SemanticCache`. Before executing the LangGraph, the user's query is embedded and compared against the cache using **Cosine Similarity**. If a query achieves a `> 0.93` similarity match with a previous question (e.g., "How do I push a docker image" vs "Push image to docker"), the gateway instantly returns the cached response, entirely bypassing the LLM and RAG pipeline for a massive performance gain.
 
 ---
 
 ## ✨ Key Features
 
 ### 🤖 Multi-Agent Cognitive Roles
-*   **Researcher:** Equipped with Tavily and Firecrawl APIs to perform real-time internet research, analyze search results, and synthesize up-to-date factual reports, eliminating LLM hallucination on recent events.
+*   **Researcher:** Equipped with Tavily and Firecrawl APIs to perform real-time internet research, looping through the LangGraph evaluator until facts are synthesized into an up-to-date report.
 *   **Knowledge Base:** Strictly grounded to the internal Qdrant vector database. Performs Approximate Nearest Neighbor (ANN) search to provide answers based *only* on ingested enterprise documents.
 *   **Planner:** Engineered to break down complex architectural or strategic requests into actionable, numbered milestones.
-*   **General & Analyze:** Optimized for coding, logical reasoning, and data analysis.
 
 ### ⚡ Premium UI & Smooth Streaming
-*   **Word-by-Word Easing Algorithm:** Features a custom React hook that buffers raw, chunked network streams from the LLM and interpolates the text rendering at 60fps, replicating the buttery-smooth typewriter effect of premium commercial AI platforms.
+*   **Word-by-Word Easing Algorithm:** Features a custom React hook (`useSmoothStream`) that buffers raw, chunked network streams from the LLM and interpolates the text rendering at 60fps, replicating the buttery-smooth typewriter effect of premium commercial AI platforms regardless of network latency.
 *   **Markdown & Syntax Highlighting:** Real-time parsing of complex markdown, tables, and code blocks with automatic hallucinated-backtick sanitization.
 
 ### 🏛️ Distributed Microservices Backend
-*   **Spring Boot Gateway:** Handles JWT authentication, OTP email verification (via Brevo), Google OAuth2, rate limiting (Redis), and PostgreSQL user data management.
-*   **Python Cognitive Core:** A dedicated FastAPI microservice that handles LangChain orchestrations, dense vector embeddings, and real-time LLM streaming via the Gemini API.
+*   **Spring Boot Gateway:** Handles JWT authentication, OTP email verification (via Brevo), Google OAuth2, rate limiting (Redis), and PostgreSQL user data management. 
+*   **Python Cognitive Core:** A dedicated FastAPI microservice that handles the LangGraph orchestrations, dense vector embeddings, and real-time LLM streaming via the Gemini API.
 
 ---
 
@@ -46,10 +69,10 @@ ThinkAction AI utilizes a containerized, 3-tier microservices architecture desig
 
 ```mermaid
 graph TD
-    Client([React Frontend - Netlify]) -->|HTTPS / REST| Nginx[Nginx Reverse Proxy - EC2]
+    Client([React Frontend - Netlify]) -->|HTTPS / REST / SSE| Nginx[Nginx Reverse Proxy - EC2]
     
     subgraph AWS EC2 Production Environment
-        Nginx -->|Proxy Pass :8081| Gateway[Spring Boot Backend Gateway]
+        Nginx -->|Proxy Pass :8081| Gateway[Spring Boot API Gateway]
         
         Gateway -->|JWT Validation| Auth[Security Context]
         Gateway -->|CRUD| DB[(PostgreSQL)]
@@ -58,26 +81,15 @@ graph TD
         Gateway -->|Internal HTTP Stream| AIService[Python AI Microservice]
         
         AIService -->|Semantic Search| Qdrant[(Qdrant Vector DB)]
+        AIService -.->|Memory Store| Qdrant
     end
     
-    AIService -.->|External API| Gemini[Google Gemini API]
-    AIService -.->|External API| Tavily[Tavily Search API]
-    AIService -.->|External API| Firecrawl[Firecrawl Web Scraper]
+    AIService -.->|LLM Stream| Gemini[Google Gemini API]
+    AIService -.->|Web Tools| Tavily[Tavily & Firecrawl API]
     
-    Auth -.->|External API| Brevo[Brevo SMTP / OTP]
-    Auth -.->|External API| Google[Google OAuth]
+    Auth -.->|OTP / Mail| Brevo[Brevo SMTP]
+    Auth -.->|Auth Provider| Google[Google OAuth]
 ```
-
-### The RAG & Agent Flow
-
-1. **User Intent:** The user selects an Agent Role (e.g., "Researcher") and submits a prompt.
-2. **Gateway Verification:** The React frontend opens a stream to the Spring Boot backend. Spring Boot validates the user's JWT and checks Redis for rate limits.
-3. **Cognitive Routing:** Spring Boot forwards the request to the Python FastAPI service.
-4. **Tool Orchestration:** 
-   * If *Knowledge Base*, Python embeds the query and fetches relevant context chunks from **Qdrant**.
-   * If *Researcher*, Python executes a search query via **Tavily**.
-5. **LLM Execution:** The retrieved context and dynamic system prompt are sent to **Gemini**.
-6. **Smooth Cascading:** The response is streamed from Gemini $\rightarrow$ Python $\rightarrow$ Spring Boot $\rightarrow$ React Frontend.
 
 ---
 
@@ -85,8 +97,8 @@ graph TD
 
 *   **Frontend:** React 19, Vite, TailwindCSS, Redux Toolkit, Framer Motion.
 *   **Backend Gateway:** Java 17, Spring Boot 3, Spring Security (JWT), Hibernate.
-*   **AI Service:** Python 3.12, FastAPI, LangChain.
-*   **Data Layer:** PostgreSQL (Relational), Qdrant (Vector Embeddings), Redis (Caching).
+*   **AI Service:** Python 3.12, FastAPI, LangGraph, LangChain.
+*   **Data Layer:** PostgreSQL (Relational), Qdrant (Vector Embeddings/Memory), Redis (Caching).
 *   **External APIs:** Google Gemini, Tavily, Firecrawl, Brevo, Google OAuth.
 *   **Infrastructure:** AWS EC2, Netlify, Nginx, Docker Compose.
 

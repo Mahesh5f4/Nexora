@@ -8,7 +8,13 @@ const CodeBlock = ({ inline, className, children, ...props }) => {
   const [copied, setCopied] = useState(false);
   const match = /language-(\w+)/.exec(className || '');
   const lang = match ? match[1] : '';
-  const codeContent = String(children).replace(/\n$/, '');
+  let codeContent = String(children).replace(/\n$/, '');
+  
+  // Fix AI hallucinations where extra backticks are placed inside the code block
+  const trimmed = codeContent.trim();
+  if (trimmed.startsWith('`') && trimmed.endsWith('`') && trimmed.includes('\n')) {
+    codeContent = trimmed.substring(1, trimmed.length - 1).trim();
+  }
 
   const handleCopy = () => {
     copyToClipboard(codeContent);

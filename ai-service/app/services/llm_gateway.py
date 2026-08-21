@@ -28,16 +28,16 @@ class LLMGateway:
     """
 
     def __init__(self, semantic_cache: SemanticCache = None):
-        api_key = os.getenv("OPENROUTER_API_KEY", "")
+        api_key = os.getenv("GEMINI_API_KEY", "")
         if not api_key:
-            logger.error("OPENROUTER_API_KEY is missing from environment variables!")
-            raise ValueError("OPENROUTER_API_KEY is missing from environment variables!")
+            logger.error("GEMINI_API_KEY is missing from environment variables!")
+            raise ValueError("GEMINI_API_KEY is missing from environment variables!")
 
         self.llm = ChatOpenAI(
-            model="openai/gpt-4o",
+            model="gemini-1.5-pro",
             api_key=api_key,
             openai_api_key=api_key,
-            base_url="https://openrouter.ai/api/v1",
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
             max_retries=2
         )
         self._semantic_cache = semantic_cache
@@ -101,7 +101,7 @@ class LLMGateway:
         class MockResponse:
             def __init__(self, text):
                 self.content = text
-                self.provider = "OpenRouter (Python Gateway)"
+                self.provider = "Gemini (Python Gateway)"
 
         return MockResponse(content)
 

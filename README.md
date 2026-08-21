@@ -1,99 +1,98 @@
-# 🎫 Nexora Event Booking Platform & AI Assistant
+# 🧠 ThinkAction AI (Nexora)
 
-**Live Demo:** [https://eventshublimited.netlify.app/](https://eventshublimited.netlify.app/)
+**Live Demo:** [https://thinkactionai.netlify.app/](https://thinkactionai.netlify.app/)
 
-[![Backend CI](https://github.com/Mahesh5f4/event-management-system/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Mahesh5f4/event-management-system/actions/workflows/backend-ci.yml)
-[![Java](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/17/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](./ai-service)
-[![LangGraph](https://img.shields.io/badge/LangGraph-Agent-FF9900?logo=langchain&logoColor=white)](#)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](./backend/docker-compose.yml)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Frontend](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Backend](https://img.shields.io/badge/Spring%20Boot-3-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![AI Service](https://img.shields.io/badge/Python-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Vector DB](https://img.shields.io/badge/Qdrant-Vector%20DB-FD1660?logo=qdrant&logoColor=white)](https://qdrant.tech/)
+[![Deployment](https://img.shields.io/badge/Docker-EC2-2496ED?logo=docker&logoColor=white)](#)
 
-> A high-availability, microservices-based distributed event ticketing platform, supercharged with a **Think-Action AI Agent** and a dynamic **LLM Gateway** for real-time, context-aware user assistance.
+> A highly scalable, unified Agentic AI workspace that integrates distinct cognitive roles (Researcher, Planner, Knowledge Base) with enterprise-grade Retrieval-Augmented Generation (RAG) and real-time web connectivity.
 
 ---
 
 ## 📖 Overview
 
-**Nexora** (formerly EventHub) is a full-stack platform that allows users to discover events, receive ML-powered recommendations, and book tickets with guaranteed seat allocation. 
+**ThinkAction AI** solves the fragmentation of modern generative AI tools by providing a single, centralized workspace where users can seamlessly switch between specialized AI agents. 
 
-To elevate the user experience, Nexora features a **Think-Action AI Assistant** powered by a LangGraph agent. The agent can answer questions, perform RAG (Retrieval-Augmented Generation) on event data, and execute web searches, all streamed in real-time to the frontend through a custom Java Spring Boot **LLM Gateway**.
+Rather than relying on generic, zero-shot prompting, the system implements **Agent Roles**. Each role is backed by a dynamically constructed system prompt and specialized tool access (e.g., deep web research via Tavily, web scraping via Firecrawl, or strict semantic document retrieval via Qdrant), orchestrated by a powerful Python microservice and governed by a highly secure Spring Boot API Gateway.
 
 ---
 
 ## ✨ Key Features
 
-### 🧠 AI & LLM Capabilities
-*   **Think-Action AI Agent:** A Python/FastAPI LangGraph agent that classifies intents, performs RAG via Qdrant, and orchestrates Web Searches via Tavily.
-*   **LLM Gateway (Provider Routing):** A centralized Spring Boot gateway that securely manages API keys and dynamically routes prompts to multiple providers.
-*   **Multi-Model Support:** Built-in integration with **OpenRouter** (`openrouter/free`).
-*   **Real-time Streaming:** End-to-end Server-Sent Events (SSE) streaming from the external LLM provider, through the Java Gateway, to the React frontend for a typewriter-like chat experience.
+### 🤖 Multi-Agent Cognitive Roles
+*   **Researcher:** Equipped with Tavily and Firecrawl APIs to perform real-time internet research, analyze search results, and synthesize up-to-date factual reports, eliminating LLM hallucination on recent events.
+*   **Knowledge Base:** Strictly grounded to the internal Qdrant vector database. Performs Approximate Nearest Neighbor (ANN) search to provide answers based *only* on ingested enterprise documents.
+*   **Planner:** Engineered to break down complex architectural or strategic requests into actionable, numbered milestones.
+*   **General & Analyze:** Optimized for coding, logical reasoning, and data analysis.
 
-### 🎫 Event & Ticketing Core
-*   **Distributed Seat Locking:** Atomically locks seats during checkout using Redis `SETNX` to prevent concurrent reservation conflicts (Lost Update Problem).
-*   **Asynchronous Processing:** Offloads heavy tasks like PDF ticket generation and email notifications to RabbitMQ, drastically reducing API latency.
-*   **ML-Powered Recommendations:** TF-IDF + cosine similarity engine for personalized event recommendations.
-*   **Real-time Updates:** WebSocket integration (STOMP) for broadcasting live seat availability updates to all connected clients.
-*   **Digital Passes & PDF Tickets:** Auto-generates downloadable PDF tickets with ZXing QR codes.
+### ⚡ Premium UI & Smooth Streaming
+*   **Word-by-Word Easing Algorithm:** Features a custom React hook that buffers raw, chunked network streams from the LLM and interpolates the text rendering at 60fps, replicating the buttery-smooth typewriter effect of premium commercial AI platforms.
+*   **Markdown & Syntax Highlighting:** Real-time parsing of complex markdown, tables, and code blocks with automatic hallucinated-backtick sanitization.
+
+### 🏛️ Distributed Microservices Backend
+*   **Spring Boot Gateway:** Handles JWT authentication, OTP email verification (via Brevo), Google OAuth2, rate limiting (Redis), and PostgreSQL user data management.
+*   **Python Cognitive Core:** A dedicated FastAPI microservice that handles LangChain orchestrations, dense vector embeddings, and real-time LLM streaming via the Gemini API.
 
 ---
 
-## 🏛️ System Architecture
+## 🏗️ System Architecture
 
-Nexora utilizes a modular 3-tier microservices architecture designed for horizontal scalability, fault isolation, and high availability.
+ThinkAction AI utilizes a containerized, 3-tier microservices architecture designed for absolute separation of concerns.
 
-### Overall System Flow
+### High-Level Architecture Flow
 
 ```mermaid
 graph TD
-    Client([React/Vite Frontend]) -->|HTTP/HTTPS| Nginx[Nginx Reverse Proxy]
-    Nginx -->|Route Request| Gateway[Spring Cloud Gateway :8080]
+    Client([React Frontend - Netlify]) -->|HTTPS / REST| Nginx[Nginx Reverse Proxy - EC2]
     
-    subgraph "Core Backend (Spring Boot)"
-        Gateway --> Auth[Auth Service / LLM Gateway :8081]
-        Gateway --> Event[Event Service :8082]
-        Gateway --> Booking[Booking Service :8083]
+    subgraph AWS EC2 Production Environment
+        Nginx -->|Proxy Pass :8081| Gateway[Spring Boot Backend Gateway]
+        
+        Gateway -->|JWT Validation| Auth[Security Context]
+        Gateway -->|CRUD| DB[(PostgreSQL)]
+        Gateway -->|Rate Limit| Redis[(Redis Cache)]
+        
+        Gateway -->|Internal HTTP Stream| AIService[Python AI Microservice]
+        
+        AIService -->|Semantic Search| Qdrant[(Qdrant Vector DB)]
     end
     
-    subgraph "AI & ML Services (Python)"
-        Auth -->|Proxy Chat| AIService[AI Agent Service :8002]
-        AIService -->|Execute Prompt| Auth
-        Event --> ML[ML Recommendation :8001]
-    end
+    AIService -.->|External API| Gemini[Google Gemini API]
+    AIService -.->|External API| Tavily[Tavily Search API]
+    AIService -.->|External API| Firecrawl[Firecrawl Web Scraper]
     
-    subgraph "External LLM Providers"
-        Auth --> OpenRouter[OpenRouter API]
-    end
-
-    subgraph "Infrastructure"
-        Event --> MySQL[(MySQL 8.0)]
-        Booking --> Redis[(Redis 7.4)]
-        Booking --> RMQ[[RabbitMQ 3.13]]
-    end
+    Auth -.->|External API| Brevo[Brevo SMTP / OTP]
+    Auth -.->|External API| Google[Google OAuth]
 ```
 
-### The AI Request Flow (Frontend to LLM Gateway)
+### The RAG & Agent Flow
 
-1. **Initiation:** User submits a prompt. React frontend opens an SSE connection to the Backend.
-2. **Proxy:** Spring Boot Backend packages the conversation history and forwards it to the Python AI Service via an internal REST call.
-3. **Orchestration:** The LangGraph agent (Python) classifies the intent, performs RAG/Web Search, and compiles the final prompt.
-4. **Execution:** The AI Service calls *back* to the Spring Boot **LLM Gateway**.
-5. **Generation & Streaming:** The Gateway selects the configured provider (e.g., Gemini), executes the prompt, and cascades the token stream all the way back to the frontend.
+1. **User Intent:** The user selects an Agent Role (e.g., "Researcher") and submits a prompt.
+2. **Gateway Verification:** The React frontend opens a stream to the Spring Boot backend. Spring Boot validates the user's JWT and checks Redis for rate limits.
+3. **Cognitive Routing:** Spring Boot forwards the request to the Python FastAPI service.
+4. **Tool Orchestration:** 
+   * If *Knowledge Base*, Python embeds the query and fetches relevant context chunks from **Qdrant**.
+   * If *Researcher*, Python executes a search query via **Tavily**.
+5. **LLM Execution:** The retrieved context and dynamic system prompt are sent to **Gemini**.
+6. **Smooth Cascading:** The response is streamed from Gemini $\rightarrow$ Python $\rightarrow$ Spring Boot $\rightarrow$ React Frontend.
 
 ---
 
 ## 🛠️ Tech Stack
 
-*   **Frontend:** React 19, Vite, Redux Toolkit, GSAP Animations, Framer Motion.
-*   **Backend (Core):** Spring Boot 3.4 (Java 17), Spring Cloud Gateway, Spring Security.
-*   **AI Service:** Python 3.12, FastAPI, LangGraph, Qdrant (Vector DB), Tavily (Web Search).
-*   **Data & State:** MySQL 8.0 (Persistent Data), Redis 7.4 (Distributed Locks, Caching).
-*   **Message Broker:** RabbitMQ 3.13 (Async Task Execution).
+*   **Frontend:** React 19, Vite, TailwindCSS, Redux Toolkit, Framer Motion.
+*   **Backend Gateway:** Java 17, Spring Boot 3, Spring Security (JWT), Hibernate.
+*   **AI Service:** Python 3.12, FastAPI, LangChain.
+*   **Data Layer:** PostgreSQL (Relational), Qdrant (Vector Embeddings), Redis (Caching).
+*   **External APIs:** Google Gemini, Tavily, Firecrawl, Brevo, Google OAuth.
+*   **Infrastructure:** AWS EC2, Netlify, Nginx, Docker Compose.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Development)
 
 ### 1. Prerequisites
 - Docker & Docker Compose
@@ -102,38 +101,46 @@ graph TD
 - Node.js 20+
 
 ### 2. Environment Variables
-Create a `.env` file in the `backend/` directory with your LLM Gateway keys:
+Create a `.env` file in the `backend/` directory:
 ```env
-OPENROUTER_API_KEY=your_openrouter_key
-AI_SERVICE_INTERNAL_TOKEN=secure_internal_token
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/nexora
+SPRING_DATASOURCE_USERNAME=nexora
+SPRING_DATASOURCE_PASSWORD=password
+SPRING_REDIS_URL=redis://localhost:6379
+GOOGLE_CLIENT_ID=your_google_client_id
+BREVO_API_KEY=your_brevo_key
 ```
-Create a `.env` file in the `ai-service/` directory for the agent:
+
+Create a `.env` file in the `ai-service/` directory:
 ```env
+GEMINI_API_KEY=your_gemini_key
 TAVILY_API_KEY=your_tavily_key
-QDRANT_API_KEY=your_qdrant_key
-AI_SERVICE_INTERNAL_TOKEN=secure_internal_token
+FIRECRAWL_API_KEY=your_firecrawl_key
+QDRANT_URL=http://localhost:6333
 ```
 
-### 3. Run the Infrastructure
-Spin up the required databases and message brokers:
+### 3. Spin up Infrastructure
+Run the required databases (PostgreSQL, Redis, Qdrant) via Docker:
 ```bash
-docker-compose up -d mysql redis rabbitmq
+docker-compose up -d postgres redis qdrant
 ```
 
-### 4. Start the Microservices
-You can use the provided batch scripts (Windows) or run them manually:
+### 4. Start Microservices
+
+**Terminal 1 (Backend Gateway):**
 ```bash
-# Start backend services
 ./mvnw spring-boot:run -pl auth-service
-./mvnw spring-boot:run -pl event-service
-./mvnw spring-boot:run -pl booking-service
+```
 
-# Start Python AI Service
+**Terminal 2 (AI Service):**
+```bash
 cd ai-service
 pip install -r requirements.txt
-uvicorn app.main:app --port 8002 --reload
+uvicorn app.main:app --port 8000 --reload
+```
 
-# Start Frontend
+**Terminal 3 (Frontend):**
+```bash
 cd frontend
 npm install
 npm run dev

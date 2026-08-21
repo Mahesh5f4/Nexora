@@ -46,9 +46,41 @@ const markdownComponents = {
   }
 };
 
+const useSmoothStream = (text, isStreaming) => {
+  const [displayedText, setDisplayedText] = useState(text);
+  const targetTextRef = React.useRef(text);
+
+  React.useEffect(() => {
+    targetTextRef.current = text;
+    if (!isStreaming) {
+      setDisplayedText(text);
+    }
+  }, [text, isStreaming]);
+
+  React.useEffect(() => {
+    if (!isStreaming) return;
+    const intervalId = setInterval(() => {
+      setDisplayedText((current) => {
+        const target = targetTextRef.current;
+        if (current.length < target.length) {
+          const diff = target.length - current.length;
+          const chunkSize = Math.max(1, Math.floor(diff / 4));
+          return target.substring(0, current.length + chunkSize);
+        }
+        return current;
+      });
+    }, 16);
+
+    return () => clearInterval(intervalId);
+  }, [isStreaming]);
+
+  return isStreaming ? displayedText : text;
+};
+
 const MessageItem = ({ message, isStreaming, onStreamingComplete }) => {
   const isUser = message.sender === 'USER';
   const [copied, setCopied] = useState(false);
+  const displayedContent = useSmoothStream(message.content, isStreaming);
 
   const handleCopy = () => {
     copyToClipboard(message.content);
@@ -95,7 +127,7 @@ const MessageItem = ({ message, isStreaming, onStreamingComplete }) => {
                 >
                   {/* §15: No typewriter animation — render directly via ReactMarkdown */}
                   <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                    {message.content}
+                    {displayedContent}
                   </ReactMarkdown>
                   {/* §9 Streaming cursor: w-[2px] h-[1em] bg-white/60 animate-pulse ml-[1px] */}
                   {isStreaming && <span className="inline-block w-[2px] h-[1em] bg-white/60 animate-pulse ml-[1px] align-middle" />}

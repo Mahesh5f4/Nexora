@@ -44,7 +44,16 @@ const Login = () => {
         animate={{ opacity: 1, scale: 1 }}
         className="ai-card w-full max-w-md p-8 sm:p-10"
       >
-        <div className="flex flex-col items-center text-center mb-10">
+        {(loading || user) ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
+            <p className="text-white/60 text-sm animate-pulse">
+              {user ? 'Redirecting to workspace...' : 'Signing you in...'}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col items-center text-center mb-10">
           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-white/10">
             <LogIn size={32} className="text-black" />
           </div>
@@ -169,6 +178,8 @@ const Login = () => {
               </button>
             </div>
           </form>
+        )}
+        </>
         )}
       </motion.div>
     </div>

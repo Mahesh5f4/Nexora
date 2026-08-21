@@ -107,11 +107,7 @@ function App() {
               <ErrorBoundary>
                 <Routes>
                   <Route path="/" element={<Home />} />
-                  <Route path="/login" element={
-                    user 
-                    ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/workspace'} /> 
-                    : <Login />
-                  } />
+                  <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/about" element={<About />} />

@@ -26,12 +26,12 @@ jobs:
             # Pull the latest changes from the main branch
             git pull origin main
             
-            # Inject GEMINI API KEY into ai-service/.env
-            touch ai-service/.env
-            if grep -q "GEMINI_API_KEY" ai-service/.env; then
-              sed -i "s/^GEMINI_API_KEY=.*/GEMINI_API_KEY=$GEMINI_API_KEY/" ai-service/.env
+            # Inject GEMINI API KEY into backend/.env (where docker-compose runs)
+            touch backend/.env
+            if grep -q "GEMINI_API_KEY" backend/.env; then
+              sed -i "s/^GEMINI_API_KEY=.*/GEMINI_API_KEY=$GEMINI_API_KEY/" backend/.env
             else
-              echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> ai-service/.env
+              echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> backend/.env
             fi
             
             # Navigate to the backend directory where docker-compose lives

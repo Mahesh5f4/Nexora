@@ -2,12 +2,6 @@
   command = "npm run build"
   publish = "dist"
 
-# Proxy /api requests to the EC2 backend to avoid Mixed Content errors
-[[redirects]]
-  from = "/api/*"
-  to = "http://56.228.22.98/api/:splat"
-  status = 200
-  force = true
 
 # React Router catch-all
 [[redirects]]

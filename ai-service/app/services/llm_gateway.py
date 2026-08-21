@@ -34,7 +34,7 @@ class LLMGateway:
             raise ValueError("GEMINI_API_KEY is missing from environment variables!")
 
         self.llm = ChatOpenAI(
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash",
             api_key=api_key,
             openai_api_key=api_key,
             base_url="https://generativelanguage.googleapis.com/v1beta/openai/",

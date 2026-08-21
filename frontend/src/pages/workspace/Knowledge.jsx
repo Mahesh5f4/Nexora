@@ -104,7 +104,7 @@ const Knowledge = () => {
   // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isAsking]);
+  }, [messages.length]);
 
   // Auto-resize textarea
   useEffect(() => {

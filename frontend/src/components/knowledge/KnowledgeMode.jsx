@@ -182,7 +182,7 @@ const KnowledgeMode = ({ activeConversation, setActiveConversation, fetchConvers
   };
 
   useEffect(() => { syncConversation(activeConversation); }, [activeConversation?.id]);
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages.length]);
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';

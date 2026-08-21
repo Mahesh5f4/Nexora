@@ -327,7 +327,15 @@ async def ask_agent_stream(
                 yield f"event: error\ndata: {json.dumps({'error': str(e), 'status': 500})}\n\n"
                 yield f"event: done\ndata: {{}}\n\n"
 
-        return StreamingResponse(event_generator(), media_type="text/event-stream")
+        return StreamingResponse(
+            event_generator(), 
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
+        )
 
     except HTTPException:
         raise

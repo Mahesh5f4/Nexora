@@ -211,7 +211,7 @@ const ResearcherMode = ({ activeConversation, setActiveConversation, fetchConver
   const messagesEndRef = useRef(null);
 
   useEffect(() => { syncConversation(activeConversation); }, [activeConversation?.id]);
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages.length]);
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';

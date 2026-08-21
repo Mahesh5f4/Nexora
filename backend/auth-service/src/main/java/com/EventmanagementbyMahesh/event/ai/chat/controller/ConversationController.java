@@ -58,8 +58,12 @@ public class ConversationController {
     }
 
     @PostMapping("/{id}/messages/stream")
-    public SseEmitter streamMessage(@PathVariable String id, @Valid @RequestBody SendMessageRequest request) {
-        return conversationService.streamMessage(id, request);
+    public ResponseEntity<SseEmitter> streamMessage(@PathVariable String id, @Valid @RequestBody SendMessageRequest request) {
+        SseEmitter emitter = conversationService.streamMessage(id, request);
+        return ResponseEntity.ok()
+                .header("X-Accel-Buffering", "no")
+                .header("Cache-Control", "no-cache")
+                .body(emitter);
     }
 
     @PostMapping("/{id}/generate-title")

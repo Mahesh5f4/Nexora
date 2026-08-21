@@ -21,7 +21,7 @@ jobs:
           envs: GEMINI_API_KEY
           script: |
             # Navigate to the project directory
-            cd /home/ubuntu/event-management-system
+            cd /home/ubuntu/Nexora
             
             # Pull the latest changes from the main branch
             git pull origin main

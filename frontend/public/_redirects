@@ -1,5 +1,5 @@
 # Proxy API requests to AWS Backend to avoid Mixed Content errors
-/api/*  http://13.48.56.253/api/:splat  200!
+/api/*  http://56.228.22.98/api/:splat  200!
 
 # SPA Fallback
 /*      /index.html                     200

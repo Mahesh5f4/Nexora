@@ -1,0 +1,36 @@
+{
+  "total": 100,
+  "correct": 33,
+  "incorrect": 67,
+  "accuracy": 33.0,
+  "per_category": {
+    "RAG": {
+      "total": 15,
+      "correct": 9
+    },
+    "Web Research": {
+      "total": 15,
+      "correct": 12
+    },
+    "Memory": {
+      "total": 15,
+      "correct": 0
+    },
+    "Code Research": {
+      "total": 15,
+      "correct": 0
+    },
+    "Analysis": {
+      "total": 15,
+      "correct": 0
+    },
+    "Planning": {
+      "total": 15,
+      "correct": 9
+    },
+    "General": {
+      "total": 10,
+      "correct": 3
+    }
+  }
+}

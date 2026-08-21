@@ -1,0 +1,46 @@
+[
+  {
+    "query": "KONDAMPUDI MAHESH BABU\nmaheshkondampudi2004@gmail.com | 6281835791\nIndia\nAugust 8, 2026\nHiring Team\n...",
+    "expected_chunk_id": "0471fbc2-f5a0-56eb-87e3-379703598021"
+  },
+  {
+    "query": "Mahesh",
+    "expected_chunk_id": "126689b8-0128-4214-b0e8-c27f52c6901b"
+  },
+  {
+    "query": "am interested in starting my software engineering\ncareer in an environment where I can learn from ex...",
+    "expected_chunk_id": "21fb40e1-06f9-5d70-ab47-acd599462b2f"
+  },
+  {
+    "query": "User is very interested in DSA and system design",
+    "expected_chunk_id": "2c6ef212-7472-4e4a-ad34-23baeea4803a"
+  },
+  {
+    "query": "User's favorite deployment method is AWS EC2",
+    "expected_chunk_id": "423b3801-d61a-41dd-9be1-5b46019739bd"
+  },
+  {
+    "query": "e healthcare software project, where I worked with\nan existing Java codebase, investigated an issue,...",
+    "expected_chunk_id": "52ee3584-e4d3-5427-b1a4-4d5837adbe3f"
+  },
+  {
+    "query": "nt seat booking, distributed locking, asynchronous\nprocessing, caching, and testing. I also built an...",
+    "expected_chunk_id": "65207c4e-c7c0-5ec0-9341-079d4ded01a2"
+  },
+  {
+    "query": "is the opportunity to learn industrial automation\ntechnologies while applying strong software engine...",
+    "expected_chunk_id": "677e1f12-9492-5350-b8b0-eda72be90228"
+  },
+  {
+    "query": "User's favorite framework is Spring Boot",
+    "expected_chunk_id": "c40c050f-3d27-4522-b03d-9e0113909d35"
+  },
+  {
+    "query": "User is very interested in DSA and system design",
+    "expected_chunk_id": "ce37afaa-21f4-450a-b5e6-ba6ffde0e2cc"
+  },
+  {
+    "query": "o Emerson's software products while developing the\nengineering skills required to become a strong so...",
+    "expected_chunk_id": "f550f915-7b0b-5251-86b8-d085c3dd18c6"
+  }
+]

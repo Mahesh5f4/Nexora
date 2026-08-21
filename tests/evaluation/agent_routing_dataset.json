@@ -1,0 +1,502 @@
+[
+  {
+    "input": "What does the document say about Security",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "What does the document say about Python",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "What does the document say about Security",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Summarize the section on Docker",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Summarize the section on Machine Learning",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Summarize the section on Security",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Where in the text is Databases mentioned?",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Where in the text is Authentication mentioned?",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Where in the text is Cloud Computing mentioned?",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "According to the uploaded file, how does API Design work?",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "According to the uploaded file, how does Vector Search work?",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "According to the uploaded file, how does Databases work?",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Can you explain the Authentication process from the PDF?",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Can you explain the Authentication process from the PDF?",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Can you explain the Security process from the PDF?",
+    "category": "RAG",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Search the web for Databases",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Search the web for API Design",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Search the web for Python",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "What is the latest news on Cloud Computing?",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "What is the latest news on Cloud Computing?",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "What is the latest news on Databases?",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Look up Vector Search",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Look up Python",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Look up React",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Find recent articles about Cloud Computing",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Find recent articles about API Design",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Find recent articles about Python",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "What is the current status of Vector Search online?",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "What is the current status of Machine Learning online?",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "What is the current status of Vector Search online?",
+    "category": "Web Research",
+    "expected_route": "collect_initial_evidence"
+  },
+  {
+    "input": "Do you remember my favorite Cloud Computing?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Do you remember my favorite Cloud Computing?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Do you remember my favorite React?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What did I say earlier about Machine Learning?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What did I say earlier about Vector Search?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What did I say earlier about Cloud Computing?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Based on my experience with Docker, what should I do?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Based on my experience with Authentication, what should I do?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Based on my experience with Authentication, what should I do?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What are my skills in Docker?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What are my skills in Vector Search?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What are my skills in Databases?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Can you recall my Security preference?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Can you recall my Security preference?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Can you recall my Docker preference?",
+    "category": "Memory",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Where is Docker implemented?",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Where is Machine Learning implemented?",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Where is Machine Learning implemented?",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Find the source code for Authentication",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Find the source code for Machine Learning",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Find the source code for Authentication",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Trace this endpoint: React",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Trace this endpoint: Machine Learning",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Trace this endpoint: React",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Which class handles React?",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Which class handles Cloud Computing?",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Which class handles React?",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "In this repository, where is API Design?",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "In this repository, where is Security?",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "In this repository, where is Machine Learning?",
+    "category": "Code Research",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Analyze the root cause of Machine Learning",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Analyze the root cause of Databases",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Analyze the root cause of Security",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What are the pros and cons of Docker?",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What are the pros and cons of Vector Search?",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What are the pros and cons of React?",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Deep dive into Docker",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Deep dive into Databases",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Deep dive into Vector Search",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Diagnose the issue with React",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Diagnose the issue with Python",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Diagnose the issue with Machine Learning",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What are the weaknesses of Vector Search?",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What are the weaknesses of Vector Search?",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What are the weaknesses of Machine Learning?",
+    "category": "Analysis",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Create a roadmap for Docker",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Create a roadmap for Machine Learning",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Create a roadmap for Cloud Computing",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "How should I build Vector Search?",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "How should I build Authentication?",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "How should I build Databases?",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Give me a step-by-step plan to implement Security",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Give me a step-by-step plan to implement Docker",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Give me a step-by-step plan to implement Vector Search",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Write a plan for Cloud Computing",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Write a plan for Authentication",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Write a plan for API Design",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "How can we design API Design?",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "How can we design Authentication?",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "How can we design Docker?",
+    "category": "Planning",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What is Vector Search?",
+    "category": "General",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What is Authentication?",
+    "category": "General",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "What is Docker?",
+    "category": "General",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "How do you do Machine Learning?",
+    "category": "General",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "How do you do Python?",
+    "category": "General",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "How do you do API Design?",
+    "category": "General",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Tell me about React",
+    "category": "General",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Tell me about Python",
+    "category": "General",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Tell me about Security",
+    "category": "General",
+    "expected_route": "direct_answer"
+  },
+  {
+    "input": "Explain Cloud Computing to me.",
+    "category": "General",
+    "expected_route": "direct_answer"
+  }
+]

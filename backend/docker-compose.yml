@@ -161,6 +161,7 @@ services:
       AI_SERVICE_INTERNAL_TOKEN: ${AI_SERVICE_INTERNAL_TOKEN}
       TAVILY_API_KEY: ${TAVILY_API_KEY}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
     depends_on:
       qdrant:
         condition: service_healthy

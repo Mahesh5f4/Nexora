@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { useAppSelector } from './store/hooks';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import MarqueeBanner from './components/ui/MarqueeBanner';
 import { AnimatePresence } from 'framer-motion';
 
 // Lazy load pages
@@ -99,9 +100,10 @@ function App() {
   return (
     <div className="relative min-h-[100dvh] bg-[#0A0A0A] text-white selection:bg-white/20 overflow-x-hidden font-sans antialiased">
       <div className={`relative z-10 flex flex-col ${isWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'}`}>
+        <MarqueeBanner />
         {!isWorkspaceRoute && <Navbar />}
 
-        <main className={`flex-1 flex flex-col w-full h-full ${!isWorkspaceRoute ? 'pt-20' : ''}`}>
+        <main className="flex-1 flex flex-col w-full h-full">
           <Suspense fallback={<LoadingFallback />}>
             <AnimatePresence mode="wait">
               <ErrorBoundary>

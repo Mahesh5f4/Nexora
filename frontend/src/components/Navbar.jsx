@@ -22,7 +22,7 @@ const Navbar = () => {
   ], []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 transform-gpu antialiased border-b border-white/5 bg-[#0A0A0A]/90 backdrop-blur-md">
+    <nav className="sticky top-0 left-0 right-0 z-40 flex items-center justify-between px-6 py-4 transform-gpu antialiased border-b border-white/5 bg-[#0A0A0A]/90 backdrop-blur-md">
       {/* Logo */}
       <Link to={user ? "/workspace" : "/"} className="flex items-center gap-2 text-white font-medium z-50 transition-opacity hover:opacity-80">
         <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center">

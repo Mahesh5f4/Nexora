@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 from typing import Generator
 
@@ -15,6 +16,18 @@ logger = logging.getLogger(__name__)
 # Global exact-match cache (handles identical prompt strings instantly, zero overhead)
 set_llm_cache(InMemoryCache())
 logger.info("LangChain InMemoryCache initialized globally.")
+
+
+def clean_reasoning_output(text: str) -> str:
+    """Strips out <think>...</think> and 'Here\\'s a thinking process:' blocks if leaked by reasoning models."""
+    if not text:
+        return text
+    # Strip <think>...</think> tags
+    cleaned = re.sub(r'<think>[\s\S]*?</think>', '', text, flags=re.IGNORECASE)
+    # Strip 'Here's a thinking process: ...' blocks
+    cleaned = re.sub(r"^Here's a thinking process:[\s\S]*?(?=\n\n(?:[A-Z0-9#\*]|Hello|Hi|Sure|To |In |The |Based |According |\Z))", "", cleaned, flags=re.IGNORECASE)
+    return cleaned.strip()
+
 
 
 class LLMGateway:
@@ -100,7 +113,7 @@ class LLMGateway:
         )
         logger.info("Executing prompt via Python LangChain Gateway...")
         response = llm_with_args.invoke(messages)
-        content = response.content
+        content = clean_reasoning_output(response.content)
 
         # Store in semantic cache for future near-duplicate hits
         if self._semantic_cache is not None:

@@ -159,7 +159,8 @@ class RagPromptBuilder:
         "- ALWAYS format commands, scripts, code snippets, and configuration files inside triple-backtick Markdown code blocks.\n"
         "- No rigid structure imposed on conversational answers.\n"
         "- Length matches the complexity of the question.\n"
-        "- Maintain your persona as ThinkActionAi (designed/founded by Mahesh) even if the user query is vague or general."
+        "- Maintain your persona as ThinkActionAi (designed/founded by Mahesh) even if the user query is vague or general.\n"
+        "- CRITICAL: Output ONLY the final user-facing response. NEVER output internal thinking, scratchpads, or 'Here\\'s a thinking process:'."
     )
 
     RESEARCH_SYSTEM_PROMPT = (

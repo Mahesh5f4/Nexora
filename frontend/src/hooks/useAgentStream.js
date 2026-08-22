@@ -1,6 +1,15 @@
 import { useState, useRef, useCallback } from 'react';
 import { aiService } from '../services/api';
 
+export function cleanResponseText(text) {
+  if (!text) return '';
+  // Strip <think>...</think> tags if leaked
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  // Strip 'Here's a thinking process: ...' blocks if leaked
+  cleaned = cleaned.replace(/^Here's a thinking process:[\s\S]*?(?=\n\n(?:[A-Z0-9#\*]|Hello|Hi|Sure|To |In |The |Based |According |\Z))/i, '');
+  return cleaned.trimStart();
+}
+
 /**
  * useAgentStream — reusable SSE streaming hook for all Thinkaction agent modes.
  *
@@ -225,7 +234,7 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
       cancelAnimationFrame(rafRef.current);
       setMessages(prev => prev.map(m =>
         m.id === asstMsgId
-          ? { ...m, streaming: false, content: streamBufferRef.current }
+          ? { ...m, streaming: false, content: cleanResponseText(streamBufferRef.current) }
           : m
       ));
 

@@ -53,14 +53,15 @@ class LLMGateway:
             "max_retries": 1
         }
 
-        # Reliable high-capacity free models on OpenRouter
-        primary_llm = ChatOpenAI(model="meta-llama/llama-3.3-70b-instruct:free", **base_params)
-        fallback_1 = ChatOpenAI(model="qwen/qwen-2.5-72b-instruct:free", **base_params)
-        fallback_2 = ChatOpenAI(model="google/gemini-2.0-flash-exp:free", **base_params)
-        fallback_3 = ChatOpenAI(model="meta-llama/llama-3.1-8b-instruct:free", **base_params)
-        fallback_4 = ChatOpenAI(model="mistralai/mistral-7b-instruct:free", **base_params)
+        # Active free models on OpenRouter
+        primary_llm = ChatOpenAI(model="google/gemma-4-31b-it:free", **base_params)
+        fallback_1 = ChatOpenAI(model="nvidia/nemotron-3.5-lightning:free", **base_params)
+        fallback_2 = ChatOpenAI(model="google/gemma-4-26b-a4b-it:free", **base_params)
+        fallback_3 = ChatOpenAI(model="nvidia/nemotron-3-super-120b-a12b:free", **base_params)
+        fallback_4 = ChatOpenAI(model="z-ai/glm-5.2:free", **base_params)
+        fallback_5 = ChatOpenAI(model="liquid/lfm-2.5-2.6b:free", **base_params)
 
-        self.llm = primary_llm.with_fallbacks([fallback_1, fallback_2, fallback_3, fallback_4])
+        self.llm = primary_llm.with_fallbacks([fallback_1, fallback_2, fallback_3, fallback_4, fallback_5])
         self._semantic_cache = semantic_cache
 
     def _build_messages(self, request: AiExecuteRequest):

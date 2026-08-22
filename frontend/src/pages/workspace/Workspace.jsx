@@ -108,6 +108,7 @@ const Workspace = () => {
 
   const handleNewChat = () => {
     setActiveConversation(null);
+    setSidebarOpen(false); // Close sidebar on mobile
     navigate('/workspace', { replace: true });
   };
 
@@ -149,14 +150,28 @@ const Workspace = () => {
   return (
     <div className="flex flex-1 h-full w-full bg-[#0A0A0B] text-white overflow-hidden font-sans">
 
+      {/* ─── Mobile Sidebar Overlay ────────────────────────────────────────────── */}
+      {sidebarOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* ─── Sidebar ──────────────────────────────────────────────────────────── */}
-      <div className={`w-64 flex-shrink-0 bg-[#111111] border-r border-white/5 flex flex-col ${sidebarOpen ? 'flex' : 'hidden md:flex'}`}>
-        <div className="p-4">
+      <div className={`fixed inset-y-0 left-0 z-50 md:relative w-64 flex-shrink-0 bg-[#111111] border-r border-white/5 flex flex-col transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} md:flex`}>
+        <div className="p-4 flex items-center justify-between">
           <button
             onClick={handleNewChat}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 text-white font-medium py-3 px-4 rounded-xl transition-all border border-white/10 shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:shadow-[0_0_20px_rgba(168,85,247,0.2)]"
+            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 text-white font-medium py-3 px-4 rounded-xl transition-all border border-white/10 shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:shadow-[0_0_20px_rgba(168,85,247,0.2)]"
           >
             <Plus size={17} /> New Chat
+          </button>
+          <button 
+            className="md:hidden ml-3 text-white/50 hover:text-white"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <Menu size={20} />
           </button>
         </div>
 
@@ -214,6 +229,7 @@ const Workspace = () => {
                           onClick={() => {
                             setActiveConversation(conv);
                             if (conv.role) setSelectedRole(conv.role);
+                            setSidebarOpen(false); // Close sidebar on mobile
                             navigate(`/workspace/chat/${conv.id}`, { replace: false });
                           }}
                           className={`group flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all ${activeConversation?.id === conv.id ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 text-white shadow-lg' : 'bg-transparent border border-transparent hover:bg-white/5 text-white/70'
@@ -253,6 +269,7 @@ const Workspace = () => {
                           onClick={() => {
                             setActiveConversation(conv);
                             if (conv.role) setSelectedRole(conv.role);
+                            setSidebarOpen(false); // Close sidebar on mobile
                             navigate(`/workspace/chat/${conv.id}`, { replace: false });
                           }}
                           className={`group flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all ${activeConversation?.id === conv.id ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 text-white shadow-lg' : 'bg-transparent border border-transparent hover:bg-white/5 text-white/70'

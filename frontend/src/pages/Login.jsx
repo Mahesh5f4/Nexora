@@ -126,6 +126,7 @@ const Login = () => {
                     theme="filled_black"
                     shape="pill"
                     text="continue_with"
+                    use_fedcm_for_prompt={true}
                   />
                </div>
             </div>

@@ -126,6 +126,26 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
       streamBufferRef.current = '';
       lastRenderedLengthRef.current = 0;
 
+      // Start a fast typewriter loop to drain the buffer smoothly
+      const startTypewriter = () => {
+        if (rafRef.current) return;
+        const updateLoop = () => {
+          if (lastRenderedLengthRef.current < streamBufferRef.current.length) {
+            const remaining = streamBufferRef.current.length - lastRenderedLengthRef.current;
+            // Adaptive speed: process more characters if falling behind, but at least 2 chars per frame (60fps)
+            const chunkSize = Math.max(3, Math.ceil(remaining / 4));
+            lastRenderedLengthRef.current += chunkSize;
+            
+            const currentText = streamBufferRef.current.substring(0, lastRenderedLengthRef.current);
+            setMessages(prev => prev.map(m =>
+              m.id === asstMsgId ? { ...m, content: currentText } : m
+            ));
+          }
+          rafRef.current = requestAnimationFrame(updateLoop);
+        };
+        rafRef.current = requestAnimationFrame(updateLoop);
+      };
+
       // BUG 2 FIX — always send `mode` so the backend classify_question gets the right agent
       await aiService.streamMessage(
         convId,
@@ -138,29 +158,25 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
         },
         (eventName, dataStr) => {
           if (eventName === 'token') {
+            startTypewriter();
             // Backend sends named 'token' events with plain text or JSON-wrapped text
             try {
               const node = JSON.parse(dataStr);
               const chunk = node.content || node.text || node.token;
               if (chunk) streamBufferRef.current += chunk;
               
-              setMessages(prev => prev.map(m =>
-                m.id === asstMsgId ? { 
-                  ...m, 
-                  content: streamBufferRef.current,
-                  ...(node.metadata ? { metadata: node.metadata } : {})
-                } : m
-              ));
+              if (node.metadata) {
+                setMessages(prev => prev.map(m =>
+                  m.id === asstMsgId ? { ...m, metadata: node.metadata } : m
+                ));
+              }
             } catch {
               // Plain text token (non-JSON) — use directly
               streamBufferRef.current += dataStr;
-              setMessages(prev => prev.map(m =>
-                m.id === asstMsgId ? { ...m, content: streamBufferRef.current } : m
-              ));
             }
           } else if (eventName === 'message') {
+            startTypewriter();
             // BUG 1 FALLBACK — graceful handling of generic 'message' events
-            // (fires if the SSE event: field was missing or mis-named)
             try {
               const node = JSON.parse(dataStr);
               const chunk = node.content || node.text || node.token;
@@ -169,16 +185,10 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
               } else if (typeof node === 'string') {
                 streamBufferRef.current += node;
               }
-              setMessages(prev => prev.map(m =>
-                m.id === asstMsgId ? { ...m, content: streamBufferRef.current } : m
-              ));
             } catch {
               // Not JSON — treat as raw text
               if (dataStr && dataStr !== '{}') {
                 streamBufferRef.current += dataStr;
-                setMessages(prev => prev.map(m =>
-                  m.id === asstMsgId ? { ...m, content: streamBufferRef.current } : m
-                ));
               }
             }
           } else if (eventName === 'source') {

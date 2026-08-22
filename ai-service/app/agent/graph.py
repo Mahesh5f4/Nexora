@@ -262,6 +262,10 @@ class AgentGraph:
         needs_rag = has_rag_intent or state.get("force_rag", False)
         needs_web = has_web_intent or state.get("needs_web_search", False)
         needs_memory = bool(has_mem_intent)
+        
+        # Defensive override: If the user is talking about themselves/memory, IGNORE forced web search
+        if needs_memory and not has_web_intent:
+            needs_web = False
         needs_code = has_code_intent
         needs_analysis = has_analysis_intent
 

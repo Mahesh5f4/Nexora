@@ -276,37 +276,33 @@ public class ConversationService {
             return mapToDto(conversation);
         }
 
-        String prompt = String.format("Generate a short, concise title (3 to 6 words max) for a chat conversation that begins with the following message. "
-                + "Return ONLY the title, no quotes, no extra text, no punctuation at the end.\\n\\nMessage: %s", firstMessage);
-
-        AiExecuteRequest llmRequest = new AiExecuteRequest(
-                prompt,
-                "You are a helpful AI that summarizes text into short titles.",
-                null,
-                0.3,
-                20
-        );
-
         try {
-            AiExecuteResponse response = pythonAiServiceClient.executePrompt(llmRequest);
-            String newTitle = response.getContent().trim().replaceAll("^[\"']|[\"']$", ""); // strip quotes if any
-            if (!newTitle.isEmpty()) {
-                conversation.setTitle(newTitle);
-                conversation = conversationRepository.save(conversation);
+            // Generate title without AI tokens: Truncate to first 4 words or 30 chars
+            String[] words = firstMessage.trim().split("\\s+");
+            StringBuilder newTitle = new StringBuilder();
+            
+            for (int i = 0; i < Math.min(words.length, 5); i++) {
+                newTitle.append(words[i]).append(" ");
             }
+            
+            String finalTitle = newTitle.toString().trim();
+            if (finalTitle.length() > 30) {
+                finalTitle = finalTitle.substring(0, 27) + "...";
+            }
+            
+            if (finalTitle.isEmpty()) {
+                finalTitle = "Chat";
+            }
+
+            // Capitalize first letter
+            finalTitle = finalTitle.substring(0, 1).toUpperCase() + finalTitle.substring(1);
+            
+            conversation.setTitle(finalTitle);
+            conversation = conversationRepository.save(conversation);
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(ConversationService.class)
                     .error("Failed to generate title for conversation {}", conversationId, e);
-            // Fallback to basic truncation if LLM fails
-            String title = firstMessage.trim();
-            if (title.length() > 40) {
-                title = title.substring(0, 37) + "...";
-            }
-            title = title.replaceAll("\\r\\n|\\r|\\n", " ");
-            conversation.setTitle(title);
-            conversation = conversationRepository.save(conversation);
         }
-
         return mapToDto(conversation);
     }
 

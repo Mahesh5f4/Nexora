@@ -28,18 +28,26 @@ class LLMGateway:
     """
 
     def __init__(self, semantic_cache: SemanticCache = None):
-        api_key = os.getenv("GEMINI_API_KEY", "")
+        api_key = os.getenv("OPENROUTER_API_KEY", "")
         if not api_key:
-            logger.error("GEMINI_API_KEY is missing from environment variables!")
-            raise ValueError("GEMINI_API_KEY is missing from environment variables!")
+            logger.error("OPENROUTER_API_KEY is missing from environment variables!")
+            raise ValueError("OPENROUTER_API_KEY is missing from environment variables!")
 
-        self.llm = ChatOpenAI(
-            model="gemini-2.5-flash",
-            api_key=api_key,
-            openai_api_key=api_key,
-            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-            max_retries=2
-        )
+        base_params = {
+            "api_key": api_key,
+            "openai_api_key": api_key,
+            "base_url": "https://openrouter.ai/api/v1",
+            "max_retries": 1
+        }
+
+        # Primary highly capable free model
+        primary_llm = ChatOpenAI(model="google/gemma-4-31b-it:free", **base_params)
+        
+        # Fallbacks in case Gemma is rate-limited or down
+        fallback_1 = ChatOpenAI(model="nvidia/nemotron-3.5-lightning:free", **base_params)
+        fallback_2 = ChatOpenAI(model="liquid/lfm-2.5-2.6b:free", **base_params)
+
+        self.llm = primary_llm.with_fallbacks([fallback_1, fallback_2])
         self._semantic_cache = semantic_cache
 
     def _build_messages(self, request: AiExecuteRequest):

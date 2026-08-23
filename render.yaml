@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: thinkaction-ai
+    runtime: docker
+    rootDir: ai-service
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: SPRING_AI_GATEWAY_URL
+        value: http://localhost:8081
+      - key: AI_SERVICE_INTERNAL_TOKEN
+        value: super-secret-dev-token
+      - key: QDRANT_URL
+        value: https://b63b90ce-bcd6-45c7-ba5f-126cffad8ab3.sa-east-1-0.aws.cloud.qdrant.io
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+
+  - type: web
+    name: thinkaction-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: auth-service/Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /api/actuator/health
+    envVars:
+      - key: PORT
+        value: 8081
+      - key: AI_INTERNAL_TOKEN
+        value: super-secret-dev-token
+      - key: SPRING_DATASOURCE_URL
+        value: jdbc:postgresql://ep-floral-shadow-ayse1wcq-pooler.c-5.us-east-2.aws.neon.tech:5432/neondb?sslmode=require
+      - key: SPRING_DATASOURCE_USERNAME
+        value: neondb_owner
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: SPRING_REDIS_URL
+        value: rediss://default:gQAAAAAAAcDkAAIgcDEzNjlkOWE4OGY4OTk0MjZiYjBjYTdhZDk0ODlhZjkzZA@positive-molly-114916.upstash.io:6379
+      - key: AI_SERVICE_URL
+        value: https://thinkaction-ai.onrender.com

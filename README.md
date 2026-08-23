@@ -680,12 +680,13 @@ Modern knowledge work demands systems that do not merely generate plausible-soun
 
 ---
 
-## 18. Founder & Lead Engineer
+## 18. Founder
+
 
 ThinkAction AI is architected and built by:
 
 **Mahesh Babu**  
-*Founder & Lead Systems Architect*  
+*Founder*  
 * Specialized in Distributed Backend Systems (Spring Boot), Agentic AI Workflows (LangGraph/FastAPI), and High-Performance Retrieval Architectures.
 * GitHub: [@Mahesh5f4](https://github.com/Mahesh5f4)
 * Project Repository: [ThinkAction AI (Nexora)](https://github.com/Mahesh5f4/Nexora.git)

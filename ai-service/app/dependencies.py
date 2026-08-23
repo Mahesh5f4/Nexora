@@ -1,4 +1,5 @@
 import logging
+import threading
 from qdrant_client import QdrantClient
 from fastapi import Request
 
@@ -12,72 +13,85 @@ from app.services.semantic_cache import SemanticCache
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Opt 3: Single SentenceTransformer — heavy model, must not reload per request
-# ---------------------------------------------------------------------------
-_embedding_provider = SentenceTransformerEmbeddingProvider()
-_embedding_service = EmbeddingService(provider=_embedding_provider)
-
-# ---------------------------------------------------------------------------
-# Opt 2: Semantic cache — uses the embedding provider we already have
-#   embedding_fn wraps a single-text call to the shared embedding service
-# ---------------------------------------------------------------------------
-def _embed_single(text: str) -> list:
-    return _embedding_service.embed_chunks([text])[0]
-
-_semantic_cache = SemanticCache(embedding_fn=_embed_single, max_size=200, threshold=0.93)
-logger.info("SemanticCache singleton ready.")
-
-# ---------------------------------------------------------------------------
-# Opt 2: LLMGateway with semantic cache injected
-# ---------------------------------------------------------------------------
-_llm_gateway = LLMGateway(semantic_cache=_semantic_cache)
-logger.info("LLMGateway singleton ready.")
-
-# ---------------------------------------------------------------------------
-# Opt 4: Qdrant client singleton — one HTTP connection pool for all requests
-# ---------------------------------------------------------------------------
-_qdrant_client = QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key)
-logger.info(f"QdrantClient singleton connected to {settings.qdrant_url}")
-
-# ---------------------------------------------------------------------------
-# Shared RAGService (used by the graph singleton below)
-# ---------------------------------------------------------------------------
-_vector_store = QdrantVectorStore(client=_qdrant_client)
-_chunker = CharacterChunker()
-_shared_rag_service = RAGService(
-    chunker=_chunker,
-    embedding_service=_embedding_service,
-    vector_store=_vector_store,
-    llm_gateway=_llm_gateway
-)
-
-# ---------------------------------------------------------------------------
-# Opt 1: Compiled LangGraph graph singleton
-#   .compile() is expensive (builds routing tables, validates state schema).
-#   The compiled graph is stateless and fully safe to reuse across requests.
-# ---------------------------------------------------------------------------
-def _build_compiled_graph():
-    from app.agent.graph import AgentGraph
-    logger.info("Compiling LangGraph agent graph (one-time startup cost)…")
-    agent_graph = AgentGraph(_shared_rag_service)
-    compiled = agent_graph.build()
-    logger.info("LangGraph compiled graph ready — will be reused for all requests.")
-    return compiled
-
-_compiled_graph = _build_compiled_graph()
+_lock = threading.Lock()
+_embedding_provider = None
+_embedding_service = None
+_semantic_cache = None
+_llm_gateway = None
+_qdrant_client = None
+_vector_store = None
+_shared_rag_service = None
+_compiled_graph = None
 
 
-# ---------------------------------------------------------------------------
-# FastAPI dependency injection helpers
-# ---------------------------------------------------------------------------
+def get_embedding_service() -> EmbeddingService:
+    global _embedding_provider, _embedding_service
+    if _embedding_service is None:
+        with _lock:
+            if _embedding_service is None:
+                logger.info("Initializing SentenceTransformerEmbeddingProvider singleton...")
+                _embedding_provider = SentenceTransformerEmbeddingProvider()
+                _embedding_service = EmbeddingService(provider=_embedding_provider)
+    return _embedding_service
 
-def get_rag_service(request: Request) -> RAGService:
-    """Returns the shared RAGService (singleton Qdrant + embedding)."""
+
+def get_semantic_cache() -> SemanticCache:
+    global _semantic_cache
+    if _semantic_cache is None:
+        with _lock:
+            if _semantic_cache is None:
+                def _embed_single(text: str) -> list:
+                    return get_embedding_service().embed_chunks([text])[0]
+                _semantic_cache = SemanticCache(embedding_fn=_embed_single, max_size=200, threshold=0.93)
+                logger.info("SemanticCache singleton ready.")
+    return _semantic_cache
+
+
+def get_llm_gateway() -> LLMGateway:
+    global _llm_gateway
+    if _llm_gateway is None:
+        with _lock:
+            if _llm_gateway is None:
+                _llm_gateway = LLMGateway(semantic_cache=get_semantic_cache())
+                logger.info("LLMGateway singleton ready.")
+    return _llm_gateway
+
+
+def get_qdrant_client() -> QdrantClient:
+    global _qdrant_client
+    if _qdrant_client is None:
+        with _lock:
+            if _qdrant_client is None:
+                _qdrant_client = QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key)
+                logger.info(f"QdrantClient singleton connected to {settings.qdrant_url}")
+    return _qdrant_client
+
+
+def get_rag_service(request: Request = None) -> RAGService:
+    global _shared_rag_service, _vector_store
+    if _shared_rag_service is None:
+        with _lock:
+            if _shared_rag_service is None:
+                _vector_store = QdrantVectorStore(client=get_qdrant_client())
+                _chunker = CharacterChunker()
+                _shared_rag_service = RAGService(
+                    chunker=_chunker,
+                    embedding_service=get_embedding_service(),
+                    vector_store=_vector_store,
+                    llm_gateway=get_llm_gateway()
+                )
+                logger.info("Shared RAGService singleton ready.")
     return _shared_rag_service
 
 
-def get_compiled_graph(request: Request):
-    """Returns the pre-compiled LangGraph graph singleton."""
+def get_compiled_graph(request: Request = None):
+    global _compiled_graph
+    if _compiled_graph is None:
+        with _lock:
+            if _compiled_graph is None:
+                from app.agent.graph import AgentGraph
+                logger.info("Compiling LangGraph agent graph singleton...")
+                agent_graph = AgentGraph(get_rag_service())
+                _compiled_graph = agent_graph.build()
+                logger.info("LangGraph compiled graph ready — reused for all requests.")
     return _compiled_graph
-

@@ -3,6 +3,7 @@ import { Mail, ExternalLink, Code2, Cpu, Globe, Rocket, Terminal, BookOpen, Awar
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
+import SEO from '../components/SEO';
 
 import maheshImg from '../assets/mahesh.jpg';
 
@@ -39,6 +40,11 @@ const About = () => {
 
   return (
     <div className="min-h-screen pt-32 pb-24">
+      <SEO 
+        title="About Mahesh Babu & ThinkAction AI Architecture"
+        description="Learn about ThinkAction AI's engineering philosophy, system architecture, and founder Mahesh Babu."
+        keywords="Mahesh Babu, ThinkAction AI founder, software engineer, Spring Boot, LangGraph, agentic AI architecture"
+      />
       <div className="container mx-auto px-6 max-w-6xl">
         {/* Hero Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-32">

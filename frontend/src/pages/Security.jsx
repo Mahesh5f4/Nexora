@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { ShieldCheck, Zap, Lock, Globe, Server, UserCheck } from 'lucide-react';
 import Card from '../components/ui/Card';
+import SEO from '../components/SEO';
 
 const Security = () => {
   const features = [
@@ -28,6 +29,11 @@ const Security = () => {
 
   return (
     <div className="min-h-screen pt-32 pb-24 transform-gpu antialiased">
+      <SEO 
+        title="Security & Isolation Architecture — ThinkAction AI"
+        description="Learn how ThinkAction AI safeguards tenant data, vector embeddings, and API authentication."
+        keywords="ThinkAction AI security, JWT authentication, tenant vector isolation, data privacy, secure AI"
+      />
       <div className="container mx-auto px-6 max-w-4xl">
         <header className="mb-20 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 mb-8">

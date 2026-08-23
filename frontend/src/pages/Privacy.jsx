@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { ShieldCheck, Eye, Database, Lock } from 'lucide-react';
 import Card from '../components/ui/Card';
+import SEO from '../components/SEO';
 
 const Privacy = () => {
   const points = [
@@ -28,6 +29,11 @@ const Privacy = () => {
 
   return (
     <div className="min-h-screen pt-32 pb-24 transform-gpu antialiased">
+      <SEO 
+        title="Privacy Policy — ThinkAction AI"
+        description="Understand how ThinkAction AI protects your personal information and preserves data privacy."
+        keywords="ThinkAction AI privacy, data protection, privacy policy"
+      />
       <div className="container mx-auto px-6 max-w-4xl">
         <header className="mb-20">
           <div className="flex items-center gap-4 text-emerald-500/40 mb-6">

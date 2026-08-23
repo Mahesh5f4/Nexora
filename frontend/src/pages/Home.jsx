@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionTemplate, useMotionValue } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Code2, Network, Workflow, MessageSquare, Database, Layers, Play } from 'lucide-react';
+import SEO from '../components/SEO';
 
 // --- Components ---
 
@@ -261,6 +262,11 @@ const AnimatedAppPreview = () => {
 const Home = () => {
   return (
     <div className="flex flex-col items-center justify-start min-h-screen pt-24 px-4 sm:px-6 relative overflow-hidden pb-32">
+      <SEO 
+        title="ThinkAction AI — Agentic AI Workspace for Research, RAG & Code Intelligence"
+        description="ThinkAction AI is an agentic AI workspace combining multi-agent reasoning, iterative evidence evaluation, persistent vector memory, repository intelligence, and enterprise RAG."
+        keywords="ThinkAction AI, AI agent, agentic workspace, LangGraph, RAG, vector memory, Qdrant, web research, code intelligence, generative AI"
+      />
       
       {/* Animated Ambient Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

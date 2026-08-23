@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Shield, Scale, FileText } from 'lucide-react';
 import Card from '../components/ui/Card';
+import SEO from '../components/SEO';
 
 const Terms = () => {
   const sections = [
@@ -24,6 +25,11 @@ const Terms = () => {
 
   return (
     <div className="min-h-screen pt-32 pb-24 transform-gpu antialiased">
+      <SEO 
+        title="Terms of Service — ThinkAction AI"
+        description="Review the Terms and Conditions governing your use of ThinkAction AI."
+        keywords="ThinkAction AI terms, terms of service, user agreement"
+      />
       <div className="container mx-auto px-6 max-w-4xl">
         <header className="mb-20">
           <div className="flex items-center gap-4 text-white/20 mb-6">

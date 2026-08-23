@@ -1,6 +1,20 @@
 User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /payment/
+Allow: /about
+Allow: /help
+Allow: /terms
+Allow: /privacy
+Allow: /security
+Allow: /legal
+Allow: /login
+Allow: /register
 
-Sitemap: https://eventshublimited.netlify.app/sitemap.xml
+# Disallow private user workspace & authenticated management routes
+Disallow: /workspace
+Disallow: /workspace/*
+Disallow: /profile
+Disallow: /settings
+Disallow: /admin
+Disallow: /admin/*
+
+Sitemap: https://thinkactionai.netlify.app/sitemap.xml

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { HelpCircle, MessageSquare, Book, LifeBuoy, ArrowRight } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import SEO from '../components/SEO';
 
 const Help = () => {
   const faqs = [
@@ -13,6 +14,11 @@ const Help = () => {
 
   return (
     <div className="min-h-screen pt-32 pb-24 transform-gpu antialiased">
+      <SEO 
+        title="Help & Support — ThinkAction AI"
+        description="Get help, read documentation, and find answers to common questions about ThinkAction AI."
+        keywords="ThinkAction AI help, support, documentation, user guide, FAQ"
+      />
       <div className="container mx-auto px-6 max-w-4xl">
         <header className="mb-20">
           <h1 className="text-5xl font-medium text-white tracking-tight mb-6">How can we help?</h1>

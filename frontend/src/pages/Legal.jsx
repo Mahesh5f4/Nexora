@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Gavel, Scale, FileText, Globe, ShieldCheck } from 'lucide-react';
 import Card from '../components/ui/Card';
 import { Link } from 'react-router-dom';
+import SEO from '../components/SEO';
 
 const Legal = () => {
   const legalLinks = [
@@ -12,6 +13,11 @@ const Legal = () => {
 
   return (
     <div className="min-h-screen pt-32 pb-24 transform-gpu antialiased">
+      <SEO 
+        title="Legal & Compliance Center — ThinkAction AI"
+        description="Access legal documents, corporate policies, and compliance standards for ThinkAction AI."
+        keywords="ThinkAction AI legal, compliance, terms, privacy, security"
+      />
       <div className="container mx-auto px-6 max-w-4xl">
         <header className="mb-20">
           <div className="flex items-center gap-4 text-white/20 mb-6">

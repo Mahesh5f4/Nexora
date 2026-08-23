@@ -42,10 +42,15 @@ class LLMGateway:
 
     def __init__(self, semantic_cache: SemanticCache = None):
         api_key = os.getenv("OPENROUTER_API_KEY", "")
+        self.llm = None
+        self._semantic_cache = semantic_cache
+        
         if not api_key:
-            logger.error("OPENROUTER_API_KEY is missing from environment variables!")
-            raise ValueError("OPENROUTER_API_KEY is missing from environment variables!")
+            logger.warning("OPENROUTER_API_KEY is not set yet. LLM requests will fail until configured.")
+        else:
+            self._init_llm(api_key)
 
+    def _init_llm(self, api_key: str):
         base_params = {
             "api_key": api_key,
             "openai_api_key": api_key,
@@ -62,7 +67,6 @@ class LLMGateway:
         fallback_5 = ChatOpenAI(model="liquid/lfm-2.5-2.6b:free", **base_params)
 
         self.llm = primary_llm.with_fallbacks([fallback_1, fallback_2, fallback_3, fallback_4, fallback_5])
-        self._semantic_cache = semantic_cache
 
     def _build_messages(self, request: AiExecuteRequest):
         messages = []
@@ -88,12 +92,20 @@ class LLMGateway:
         # Fallback for generic prompts
         return prompt.strip()
 
+    def _ensure_llm(self):
+        if self.llm is None:
+            api_key = os.getenv("OPENROUTER_API_KEY", "")
+            if not api_key:
+                raise ValueError("OPENROUTER_API_KEY is missing from environment variables!")
+            self._init_llm(api_key)
+
     def execute_prompt(self, request: AiExecuteRequest):
         """
         Synchronous prompt execution with two-level caching:
           1. Semantic cache (near-duplicate match).
           2. LangChain InMemoryCache (exact match, handled transparently by LC).
         """
+        self._ensure_llm()
         cache_key = self._cache_key(request)
 
         # --- Layer 1: semantic cache lookup ---
@@ -129,10 +141,11 @@ class LLMGateway:
 
     def execute_prompt_stream(self, request: AiExecuteRequest) -> Generator[str, None, None]:
         """
-        Streaming prompt execution with semantic caching.
-        If a cache hit occurs, the cached response is yielded as a single chunk
-        (or fast chunks) to simulate streaming, skipping the LLM entirely.
+        Streaming prompt execution with two-level caching:
+          1. Semantic cache (yields full cached answer immediately if hit).
+          2. LangChain ChatOpenAI stream (yields clean token chunks).
         """
+        self._ensure_llm()
         cache_key = self._cache_key(request)
 
         # --- Layer 1: semantic cache lookup ---

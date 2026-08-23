@@ -106,3 +106,16 @@ springdoc:
     path: /swagger-ui.html
     tags-sorter: alpha
     operations-sorter: method
+
+ai:
+  service:
+    url: ${AI_SERVICE_URL:https://thinkaction-ai.onrender.com}
+  internal:
+    token: ${AI_INTERNAL_TOKEN:${AI_SERVICE_INTERNAL_TOKEN:super-secret-dev-token}}
+  conversation:
+    max-context-messages: ${AI_CONVERSATION_MAX_CONTEXT_MESSAGES:10}
+
+admin:
+  email: ${ADMIN_EMAIL:thinkactionai@admin.com}
+  password: ${ADMIN_PASSWORD:admin123}
+

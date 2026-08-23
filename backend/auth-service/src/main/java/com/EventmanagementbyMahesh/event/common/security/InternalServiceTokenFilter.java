@@ -21,7 +21,7 @@ public class InternalServiceTokenFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
 
     public InternalServiceTokenFilter(
-            @Value("${ai.internal.token:super-secret-dev-token}") String internalToken,
+            @Value("${ai.internal.token:${AI_INTERNAL_TOKEN:${AI_SERVICE_INTERNAL_TOKEN:super-secret-dev-token}}}") String internalToken,
             JwtUtil jwtUtil) {
         this.internalToken = internalToken;
         this.jwtUtil = jwtUtil;

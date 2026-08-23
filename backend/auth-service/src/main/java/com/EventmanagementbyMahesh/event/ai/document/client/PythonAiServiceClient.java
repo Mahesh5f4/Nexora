@@ -27,8 +27,8 @@ public class PythonAiServiceClient {
 
     public PythonAiServiceClient(
             RestTemplate restTemplate,
-            @Value("${ai.service.url:http://localhost:8001}") String pythonServiceUrl,
-            @Value("${ai.internal.token:super-secret-dev-token}") String internalToken) {
+            @Value("${ai.service.url:${AI_SERVICE_URL:https://thinkaction-ai.onrender.com}}") String pythonServiceUrl,
+            @Value("${ai.internal.token:${AI_INTERNAL_TOKEN:${AI_SERVICE_INTERNAL_TOKEN:super-secret-dev-token}}}") String internalToken) {
         this.restTemplate = restTemplate;
         this.pythonServiceUrl = pythonServiceUrl;
         this.internalToken = internalToken;

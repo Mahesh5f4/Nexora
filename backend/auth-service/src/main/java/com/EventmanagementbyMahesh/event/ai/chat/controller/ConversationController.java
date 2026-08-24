@@ -43,7 +43,7 @@ public class ConversationController {
     }
 
     @GetMapping("/{id}/messages")
-    public ResponseEntity<Page<MessageDto>> getMessages(@PathVariable String id, @PageableDefault(sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+    public ResponseEntity<Page<MessageDto>> getMessages(@PathVariable String id, @PageableDefault(size = 10000, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(conversationService.getMessages(id, pageable));
     }
 

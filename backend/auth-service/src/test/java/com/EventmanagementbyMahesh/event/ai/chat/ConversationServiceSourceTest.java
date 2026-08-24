@@ -99,11 +99,11 @@ class ConversationServiceSourceTest {
         
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> {
             Message m = i.getArgument(0);
-            ReflectionTestUtils.setField(m, "id", "100");
+            ReflectionTestUtils.setField(m, "id", 100L);
             return m;
         });
 
-        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq("10"), any()))
+        when(messageRepository.findAllByConversationIdOrderByCreatedAtAsc(eq("10")))
                 .thenReturn(Collections.emptyList());
 
         AgentAskResponse response = new AgentAskResponse("Answer without sources", Collections.emptyList(), "agent");
@@ -122,11 +122,11 @@ class ConversationServiceSourceTest {
         
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> {
             Message m = i.getArgument(0);
-            ReflectionTestUtils.setField(m, "id", "100");
+            ReflectionTestUtils.setField(m, "id", 100L);
             return m;
         });
 
-        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq("10"), any()))
+        when(messageRepository.findAllByConversationIdOrderByCreatedAtAsc(eq("10")))
                 .thenReturn(Collections.emptyList());
 
         RagSourceDto ragSource = new RagSourceDto("doc1", "internal.pdf", "chunk1", 0.95);
@@ -148,11 +148,11 @@ class ConversationServiceSourceTest {
         
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> {
             Message m = i.getArgument(0);
-            ReflectionTestUtils.setField(m, "id", "100");
+            ReflectionTestUtils.setField(m, "id", 100L);
             return m;
         });
 
-        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq("10"), any()))
+        when(messageRepository.findAllByConversationIdOrderByCreatedAtAsc(eq("10")))
                 .thenReturn(Collections.emptyList());
 
         RagSourceDto webSource = new RagSourceDto("https://example.com", "Example Domain", "example.com", 0.88);
@@ -174,11 +174,11 @@ class ConversationServiceSourceTest {
         
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> {
             Message m = i.getArgument(0);
-            ReflectionTestUtils.setField(m, "id", "100");
+            ReflectionTestUtils.setField(m, "id", 100L);
             return m;
         });
 
-        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq("10"), any()))
+        when(messageRepository.findAllByConversationIdOrderByCreatedAtAsc(eq("10")))
                 .thenReturn(Collections.emptyList());
 
         RagSourceDto ragSource = new RagSourceDto("doc1", "internal.pdf", "chunk1", 0.95);
@@ -202,11 +202,11 @@ class ConversationServiceSourceTest {
         
         when(messageRepository.save(messageCaptor.capture())).thenAnswer(i -> {
             Message m = i.getArgument(0);
-            ReflectionTestUtils.setField(m, "id", "100");
+            ReflectionTestUtils.setField(m, "id", 100L);
             return m;
         });
 
-        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(eq("10"), any()))
+        when(messageRepository.findAllByConversationIdOrderByCreatedAtAsc(eq("10")))
                 .thenReturn(Collections.emptyList());
 
         RagSourceDto ragSource = new RagSourceDto("doc1", "internal.pdf", "chunk1", 0.95);
@@ -230,7 +230,7 @@ class ConversationServiceSourceTest {
         when(conversationRepository.findByIdAndUserId("10", 1L)).thenReturn(Optional.of(testConversation));
         
         Message historicalMsg = new Message(testConversation, MessageRole.ASSISTANT, "Old answer");
-        ReflectionTestUtils.setField(historicalMsg, "id", "99");
+        ReflectionTestUtils.setField(historicalMsg, "id", 99L);
         // sources is intentionally left null, like in old DB records
         historicalMsg.setSources(null); 
         

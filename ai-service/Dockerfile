@@ -7,9 +7,14 @@ ENV PYTHONDONTWRITEBYTECODE 1
 # Prevent Python from buffering stdout and stderr
 ENV PYTHONUNBUFFERED 1
 
+ENV SENTENCE_TRANSFORMERS_HOME /app/.cache
+
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Pre-download SentenceTransformer model to cache in Docker layer
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
 COPY ./app ./app
 

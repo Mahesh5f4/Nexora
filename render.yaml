@@ -9,7 +9,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: SPRING_AI_GATEWAY_URL
-        value: http://localhost:8081
+        value: https://thinkaction-backend.onrender.com
       - key: AI_SERVICE_INTERNAL_TOKEN
         value: super-secret-dev-token
       - key: QDRANT_URL

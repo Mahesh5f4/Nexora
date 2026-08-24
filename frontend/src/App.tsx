@@ -103,7 +103,7 @@ function App() {
         <MarqueeBanner />
         {!isWorkspaceRoute && <Navbar />}
 
-        <main className="flex-1 flex flex-col w-full h-full">
+        <main className="flex-1 flex flex-col w-full min-h-0">
           <Suspense fallback={<LoadingFallback />}>
             <AnimatePresence mode="wait">
               <ErrorBoundary>

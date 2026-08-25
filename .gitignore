@@ -123,3 +123,7 @@ ai-service/.env
 ai-service/.env.*
 ai-service/venv/
 ai-service/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+

@@ -2,20 +2,26 @@ import { useState, useEffect, useRef } from 'react';
 import { documentService } from '../../services/api';
 import { 
   FileText, Plus, Trash2, Send, Search, 
-  RefreshCw, User, LogOut, CheckCircle, AlertCircle, File
+  RefreshCw, User, LogOut, CheckCircle, AlertCircle, File, Sparkles
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
+import { IS_PREVIEW_MODE, generateAdaptivePreviewResponse } from '../../config/previewConfig';
+
+const PREVIEW_DOCS = [
+  { id: 'doc_sec_2026_01', filename: 'ThinkAction_Architecture_Whitepaper_v2.pdf', status: 'COMPLETED', size: 1048576 },
+  { id: 'doc_sec_2026_02', filename: 'Security_and_Compliance_Summary.docx', status: 'COMPLETED', size: 524288 }
+];
 
 const Knowledge = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   
-  const [documents, setDocuments] = useState([]);
-  const [activeDocument, setActiveDocument] = useState(null);
+  const [documents, setDocuments] = useState(IS_PREVIEW_MODE ? PREVIEW_DOCS : []);
+  const [activeDocument, setActiveDocument] = useState(IS_PREVIEW_MODE ? PREVIEW_DOCS[0] : null);
   const [messages, setMessages] = useState([]);
   
   // Input state
@@ -34,16 +40,22 @@ const Knowledge = () => {
   const fetchDocuments = async (hideError = false) => {
     try {
       const res = await documentService.getDocuments();
-      setDocuments(res.data);
+      const docs = res.data && res.data.length > 0 ? res.data : (IS_PREVIEW_MODE ? PREVIEW_DOCS : []);
+      setDocuments(docs);
       
       // Update activeDocument reference if its status changed
       setActiveDocument(prev => {
-        if (!prev) return null;
-        const updated = res.data.find(d => d.id === prev.id);
-        return updated || null; // If deleted, set to null
+        if (!prev) return docs[0] || null;
+        const updated = docs.find(d => d.id === prev.id);
+        return updated || docs[0] || null;
       });
     } catch (err) {
-      if (!hideError) console.error("Failed to load documents:", err);
+      if (IS_PREVIEW_MODE) {
+        setDocuments(PREVIEW_DOCS);
+        if (!activeDocument) setActiveDocument(PREVIEW_DOCS[0]);
+      } else if (!hideError) {
+        console.error("Failed to load documents:", err);
+      }
     }
   };
 
@@ -186,6 +198,22 @@ const Knowledge = () => {
     
     const docId = activeDocument.id;
     setAskingId(docId);
+
+    if (IS_PREVIEW_MODE) {
+      setTimeout(() => {
+        const previewRes = generateAdaptivePreviewResponse('KNOWLEDGE', userMessageContent);
+        if (activeDocIdRef.current === docId) {
+          setMessages(prev => [...prev, {
+            id: Date.now() + 1,
+            sender: 'AI',
+            content: previewRes.content,
+            sources: previewRes.sources
+          }]);
+        }
+        setAskingId(prev => prev === docId ? null : prev);
+      }, 500);
+      return;
+    }
 
     try {
       const res = await documentService.askQuestion({ documentId: docId, query: userMessageContent, topK: 5 });

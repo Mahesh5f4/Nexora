@@ -314,13 +314,23 @@ const Home = () => {
             Experience a unified workspace combining deep research, precise code generation, and intelligent multi-step planning in one seamless interface. Your workflow, supercharged.
           </p>
 
-          <Link 
-            to="/workspace"
-            className="group relative flex items-center gap-2 bg-white text-black px-8 py-4 rounded-xl font-medium transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto justify-center overflow-hidden"
-          >
-            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-            Launch Workspace <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <Link 
+              to="/workspace"
+              className="group relative flex items-center gap-2 bg-white text-black px-8 py-4 rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto justify-center overflow-hidden shadow-[0_0_25px_rgba(255,255,255,0.2)]"
+            >
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+              <Sparkles size={18} className="text-purple-600" />
+              Launch Interactive Preview <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+
+            <a 
+              href="#showcase"
+              className="flex items-center gap-2 px-6 py-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-sm font-medium transition-all w-full sm:w-auto justify-center"
+            >
+              <Play size={15} className="text-cyan-400" /> Watch Feature Tour
+            </a>
+          </div>
         </motion.div>
 
         {/* Right Side: Video Showcase Mockup */}
@@ -330,18 +340,18 @@ const Home = () => {
             opacity: 1, 
             x: 0, 
             scale: 1,
-            y: [-5, 5, -5] // infinite floating
+            y: [-5, 5, -5]
           }}
           transition={{ 
             opacity: { duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] },
             x: { duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] },
             scale: { duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] },
-            y: { duration: 6, repeat: Infinity, ease: "easeInOut" } // Slower, smoother float
+            y: { duration: 6, repeat: Infinity, ease: "easeInOut" }
           }}
           style={{ willChange: "transform" }}
           className="relative w-full mt-8 lg:mt-0"
         >
-          {/* Glassmorphic Frame - Reduced blur from 3xl to xl for performance */}
+          {/* Glassmorphic Frame */}
           <div className="relative rounded-2xl md:rounded-[2rem] border border-white/10 bg-[#111111]/60 backdrop-blur-xl shadow-[0_20px_50px_rgba(168,85,247,0.15)] overflow-hidden transform-gpu" style={{ willChange: "transform" }}>
             
             {/* Mockup Header */}
@@ -352,7 +362,7 @@ const Home = () => {
                 <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
               </div>
               <div className="mx-auto text-[10px] uppercase tracking-widest font-bold text-white/30 flex items-center gap-2">
-                <Play size={10} className="text-cyan-400" /> App Preview
+                <Play size={10} className="text-cyan-400" /> Interactive Simulation Preview
               </div>
             </div>
 
@@ -361,10 +371,101 @@ const Home = () => {
             
           </div>
           
-          {/* Glowing element behind the mockup - reduced blur slightly for GPU performance */}
           <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/30 to-cyan-500/30 blur-2xl -z-10 rounded-full opacity-50" style={{ willChange: "transform" }} />
         </motion.div>
       </div>
+
+      {/* Interactive Feature Showcase Section */}
+      <section id="showcase" className="w-full max-w-7xl mx-auto mt-36 z-10 px-4">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-semibold uppercase tracking-wider mb-4">
+            <Sparkles size={13} /> Architecture & Capabilities Explorer
+          </div>
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tight">
+            Watch All Features In Action
+          </h2>
+          <p className="text-white/50 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+            Explore how ThinkAction AI orchestrates multi-agent intelligence, vector embeddings, and verification loops with zero rate limit bottlenecks.
+          </p>
+        </div>
+
+        {/* 5-Persona Interactive Tabs */}
+        <div className="rounded-3xl border border-white/10 bg-[#0E0E11]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-2xl">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            
+            {/* Left: Persona Descriptions */}
+            <div className="lg:col-span-5 space-y-3">
+              {[
+                { id: 'GENERAL', title: '1. General Agent & Dynamic Tool Routing', desc: 'Auto-detects intent, writes clean full-stack code, and coordinates specialized tools seamlessly.', color: 'border-blue-500/40 bg-blue-500/10 text-blue-400' },
+                { id: 'RESEARCH', title: '2. Deep Web Research & Fact Verification', desc: 'Conducts multi-source web evidence retrieval with epistemic badges (Verified, Inference, Uncertain).', color: 'border-purple-500/40 bg-purple-500/10 text-purple-400' },
+                { id: 'PLAN', title: '3. Strategic Multi-Stage Planner', desc: 'Breaks complex goals into actionable execution stages with concrete Done-When criteria and risk flags.', color: 'border-rose-500/40 bg-rose-500/10 text-rose-400' },
+                { id: 'ANALYZE', title: '4. Deep SWOT & System Analysis', desc: 'Performs comprehensive diagnostic evaluations, architectural tradeoff matrices, and executive summaries.', color: 'border-amber-500/40 bg-amber-500/10 text-amber-400' },
+                { id: 'KNOWLEDGE', title: '5. Vector Document RAG Engine', desc: 'Indexes PDF/DOCX files into high-dimensional vector embeddings with sub-millisecond similarity retrieval.', color: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400' }
+              ].map(item => (
+                <div key={item.id} className={`p-4 rounded-2xl border transition-all ${item.color}`}>
+                  <h3 className="text-sm font-bold tracking-tight mb-1">{item.title}</h3>
+                  <p className="text-white/60 text-xs leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+
+              <div className="pt-4">
+                <Link
+                  to="/workspace"
+                  className="flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-sm transition-all shadow-lg hover:shadow-cyan-500/25"
+                >
+                  <Sparkles size={16} /> Test All Personas in Workspace Preview
+                </Link>
+              </div>
+            </div>
+
+            {/* Right: Interactive Blueprint Card */}
+            <div className="lg:col-span-7 rounded-2xl bg-[#070709] border border-white/10 p-6 font-mono text-xs text-white/80 overflow-hidden shadow-inner space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[11px] font-bold text-white uppercase tracking-wider">System Pipeline Architecture</span>
+                </div>
+                <span className="text-[10px] text-white/40">Spring Boot 3.4 + LangGraph + Qdrant</span>
+              </div>
+
+              <div className="space-y-3 font-sans text-xs text-white/70">
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 space-y-1.5">
+                  <p className="text-white font-semibold text-xs flex items-center gap-2">
+                    <span className="text-cyan-400 font-mono">01.</span> Distributed API Gateway
+                  </p>
+                  <p className="text-white/50 text-[11px]">
+                    Spring Cloud Gateway routes requests with token bucket rate limiting and non-blocking WebFlux SSE streaming.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 space-y-1.5">
+                  <p className="text-white font-semibold text-xs flex items-center gap-2">
+                    <span className="text-purple-400 font-mono">02.</span> Self-Correcting Multi-Agent Graph
+                  </p>
+                  <p className="text-white/50 text-[11px]">
+                    Evaluates user query intent, dynamically synthesizes web evidence, and cross-checks claim contradictions in parallel.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 space-y-1.5">
+                  <p className="text-white font-semibold text-xs flex items-center gap-2">
+                    <span className="text-emerald-400 font-mono">03.</span> HNSW Vector Memory & RAG Retrieval
+                  </p>
+                  <p className="text-white/50 text-[11px]">
+                    Extracts document embeddings with tenant isolation, performing dense cosine similarity matching with verified citations.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center justify-between">
+                <span>⚡ Zero Rate Limits • Local 60fps SSE Simulation Active</span>
+                <span className="font-bold text-[10px] uppercase tracking-widest bg-emerald-500/20 px-2 py-0.5 rounded">Ready</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
 
       {/* Feature Grid */}
       <motion.div 
@@ -372,7 +473,7 @@ const Home = () => {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-7xl mx-auto mt-40 z-10 px-4"
+        className="w-full max-w-7xl mx-auto mt-36 z-10 px-4"
       >
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 tracking-tight">Supercharge your productivity</h2>

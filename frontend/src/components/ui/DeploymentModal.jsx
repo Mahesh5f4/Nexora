@@ -75,32 +75,32 @@ const DeploymentModal = () => {
             {/* Title & Icon */}
             <div className="flex items-start gap-3.5 mb-3">
               <div className="p-2.5 rounded-xl bg-gradient-to-br from-white/15 to-white/5 border border-white/10 text-white shadow-inner shrink-0 mt-0.5">
-                <Rocket className="w-5 h-5 text-white" />
+                <Rocket className="w-5 h-5 text-cyan-400" />
               </div>
               <div>
                 <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                  Product in Testing & Active Deployment
+                  Model Evaluation & Feature Showcase
                 </h3>
                 <p className="text-xs text-white/50 mt-0.5">
-                  We're fine-tuning features and polishing the experience.
+                  AI models under active development & benchmarking.
                 </p>
               </div>
             </div>
 
             {/* Body Description */}
             <p className="text-sm text-white/70 leading-relaxed mb-5 font-normal">
-              Our platform is currently undergoing active staging, testing, and continuous deployment. During this preview phase, some features may receive live updates. Full stable release will be available soon!
+              To prevent backend rate limit exhaustion while we build and benchmark custom model weights, live AI chat is locked into <strong className="text-white">Interactive Feature Preview Mode</strong>. You can test and watch all 5 agent personas (General, Researcher, Planner, Analyze, and Knowledge RAG) with realistic real-time simulation!
             </p>
 
             {/* Status Checklist / Highlight Box */}
             <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3.5 mb-6 space-y-2.5">
               <div className="flex items-center gap-2.5 text-xs text-white/80">
                 <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                <span>Core workspace & AI agents active for preview testing</span>
+                <span>All 5 agent workflows active for interactive demonstration</span>
               </div>
               <div className="flex items-center gap-2.5 text-xs text-white/80">
-                <Sparkles size={14} className="text-amber-400 shrink-0" />
-                <span>Full production rollout & enhanced quotas available soon</span>
+                <Sparkles size={14} className="text-cyan-400 shrink-0" />
+                <span>Zero rate limits, zero server errors — frictionless founder tour</span>
               </div>
             </div>
 
@@ -110,7 +110,7 @@ const DeploymentModal = () => {
                 onClick={handleDismiss}
                 className="w-full sm:flex-1 py-2.5 px-4 bg-white text-black font-semibold text-sm rounded-xl hover:bg-white/90 active:scale-[0.98] transition-all shadow-lg text-center"
               >
-                Got it, Explore Preview
+                Launch Interactive Feature Showcase
               </button>
             </div>
           </motion.div>

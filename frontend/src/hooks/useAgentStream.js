@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { aiService } from '../services/api';
+import { IS_PREVIEW_MODE, generateAdaptivePreviewResponse } from '../config/previewConfig';
 
 export function cleanResponseText(text) {
   if (!text) return '';
@@ -13,18 +14,7 @@ export function cleanResponseText(text) {
 /**
  * useAgentStream — reusable SSE streaming hook for all Thinkaction agent modes.
  *
- * Fixes applied:
- *  - BUG 1: SSE parser fix is in api.js; this hook adds a fallback for 'message' events
- *            that carry JSON-wrapped tokens (graceful degradation if backend sends generic events)
- *  - BUG 2: `mode: role` is always included in the stream payload so classify_question
- *            receives the correct agent mode
- *  - BUG 3: Analyze mode short-input guard — queries under 10 chars get a local
- *            clarification message; no backend call is made
- *
- * @param {string} role - Agent role key: 'GENERAL', 'CODE_RESEARCHER', 'RESEARCH', 'PLAN', 'ANALYZE'
- * @param {object} activeConversation
- * @param {function} setActiveConversation
- * @param {function} fetchConversations
+ * Supports IS_PREVIEW_MODE for interactive founder demos & rate-limit lockdown during model development.
  */
 export function useAgentStream(role, activeConversation, setActiveConversation, fetchConversations, onConversationCreated) {
   const [messages, setMessages] = useState([]);
@@ -43,13 +33,28 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
   const loadMessages = useCallback(async (id) => {
     try {
       setIsLoading(true);
+      if (IS_PREVIEW_MODE && typeof id === 'string' && id.startsWith('preview-')) {
+        // Saved in session/local preview
+        const stored = sessionStorage.getItem(`preview_conv_${id}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setMessages(parsed);
+          const lastMsg = parsed[parsed.length - 1];
+          if (lastMsg?.sources) setActiveSources(lastMsg.sources);
+        }
+        setIsLoading(false);
+        return;
+      }
+
       const res = await aiService.getMessages(id);
       const msgs = res.data.content || res.data || [];
       setMessages(msgs);
       const lastMsg = msgs[msgs.length - 1];
       if (lastMsg?.metadata?.evidence) setActiveSources(lastMsg.metadata.evidence);
     } catch {
-      setError('Failed to load conversation history.');
+      if (!IS_PREVIEW_MODE) {
+        setError('Failed to load conversation history.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -107,24 +112,99 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
     setIsLoading(true);
 
     let convId = activeConversation?.id;
+
+    // ─── PREVIEW SIMULATION MODE ──────────────────────────────────────────────
+    if (IS_PREVIEW_MODE) {
+      const mockResult = generateAdaptivePreviewResponse(role, content);
+      
+      if (!convId) {
+        convId = `preview-${Date.now()}`;
+        currentConvIdRef.current = convId;
+        const mockConv = {
+          id: convId,
+          title: content.length > 35 ? content.substring(0, 32) + '...' : content,
+          role,
+          createdAt: new Date().toISOString()
+        };
+        if (onConversationCreated) {
+          onConversationCreated(mockConv, content);
+        } else if (setActiveConversation) {
+          setActiveConversation(mockConv);
+        }
+      }
+
+      // Simulate source citations arrival
+      if (mockResult.sources && mockResult.sources.length > 0) {
+        setTimeout(() => {
+          setActiveSources(mockResult.sources);
+          setMessages(prev => prev.map(m =>
+            m.id === asstMsgId ? { ...m, sources: mockResult.sources } : m
+          ));
+        }, 300);
+      }
+
+      if (mockResult.metadata) {
+        setMessages(prev => prev.map(m =>
+          m.id === asstMsgId ? { ...m, metadata: mockResult.metadata } : m
+        ));
+      }
+
+      // Typewriter streaming loop
+      let charIndex = 0;
+      const fullText = mockResult.content;
+      
+      const streamTimer = setInterval(() => {
+        if (!isLoadingRef.current) {
+          clearInterval(streamTimer);
+          return;
+        }
+
+        // Adaptive chunk size (6-12 chars per 16ms tick for ultra smooth typing)
+        charIndex += Math.floor(Math.random() * 6) + 6;
+        if (charIndex >= fullText.length) {
+          charIndex = fullText.length;
+          clearInterval(streamTimer);
+          
+          setMessages(prev => {
+            const updated = prev.map(m =>
+              m.id === asstMsgId ? { ...m, content: fullText, streaming: false } : m
+            );
+            if (convId) {
+              sessionStorage.setItem(`preview_conv_${convId}`, JSON.stringify(updated));
+            }
+            return updated;
+          });
+
+          setIsLoading(false);
+          isLoadingRef.current = false;
+        } else {
+          const currentSlice = fullText.substring(0, charIndex);
+          setMessages(prev => prev.map(m =>
+            m.id === asstMsgId ? { ...m, content: currentSlice } : m
+          ));
+        }
+      }, 16);
+
+      return;
+    }
+
+    // ─── LIVE BACKEND API STREAMING (IS_PREVIEW_MODE = false) ─────────────────
     const controller = new AbortController();
     abortControllerRef.current = controller;
-    let wasNewConversation = !convId; // track if we created a new conv this request
+    let wasNewConversation = !convId;
 
     try {
       if (!convId) {
         const convRes = await aiService.createConversation({ role });
         convId = convRes.data.id;
         currentConvIdRef.current = convId;
-        // Architecture A: use onConversationCreated to update URL; fall back to setActiveConversation
         if (onConversationCreated) {
-          onConversationCreated(convRes.data, content); // pass content for optimistic title
+          onConversationCreated(convRes.data, content);
         } else {
           setActiveConversation(convRes.data);
           if (fetchConversations) fetchConversations();
         }
         
-        // Kick off background LLM title generation (don't await it so we don't block the stream)
         aiService.generateConversationTitle(convId, { prompt: content })
           .then(() => {
             if (fetchConversations) fetchConversations();
@@ -135,13 +215,11 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
       streamBufferRef.current = '';
       lastRenderedLengthRef.current = 0;
 
-      // Start a fast typewriter loop to drain the buffer smoothly
       const startTypewriter = () => {
         if (rafRef.current) return;
         const updateLoop = () => {
           if (lastRenderedLengthRef.current < streamBufferRef.current.length) {
             const remaining = streamBufferRef.current.length - lastRenderedLengthRef.current;
-            // Adaptive speed: process more characters if falling behind, but at least 2 chars per frame (60fps)
             const chunkSize = Math.max(3, Math.ceil(remaining / 4));
             lastRenderedLengthRef.current += chunkSize;
             
@@ -155,7 +233,6 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
         rafRef.current = requestAnimationFrame(updateLoop);
       };
 
-      // BUG 2 FIX — always send `mode` so the backend classify_question gets the right agent
       await aiService.streamMessage(
         convId,
         {
@@ -168,7 +245,6 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
         (eventName, dataStr) => {
           if (eventName === 'token') {
             startTypewriter();
-            // Backend sends named 'token' events with plain text or JSON-wrapped text
             try {
               const node = JSON.parse(dataStr);
               const chunk = node.content || node.text || node.token;
@@ -180,12 +256,10 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
                 ));
               }
             } catch {
-              // Plain text token (non-JSON) — use directly
               streamBufferRef.current += dataStr;
             }
           } else if (eventName === 'message') {
             startTypewriter();
-            // BUG 1 FALLBACK — graceful handling of generic 'message' events
             try {
               const node = JSON.parse(dataStr);
               const chunk = node.content || node.text || node.token;
@@ -195,7 +269,6 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
                 streamBufferRef.current += node;
               }
             } catch {
-              // Not JSON — treat as raw text
               if (dataStr && dataStr !== '{}') {
                 streamBufferRef.current += dataStr;
               }
@@ -203,13 +276,12 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
           } else if (eventName === 'source') {
             try {
               const src = JSON.parse(dataStr);
-              // Filter localhost sources on the frontend as a final safety net
               if (src.url && (src.url.includes('localhost') || src.url.includes('127.0.0.1'))) return;
               setActiveSources(prev => [...prev, src]);
               setMessages(prev => prev.map(m =>
                 m.id === asstMsgId ? { ...m, sources: [...(m.sources || []), src] } : m
               ));
-            } catch { /* ignore malformed source events */ }
+            } catch { /* ignore */ }
           } else if (eventName === 'metadata') {
             try {
               const meta = JSON.parse(dataStr);
@@ -225,12 +297,10 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
               setError(dataStr || 'Unknown stream error.');
             }
           }
-          // 'start', 'status', 'done' events are informational — no action needed
         },
         controller.signal
       );
 
-      // Stream finished — finalize the assistant message
       cancelAnimationFrame(rafRef.current);
       setMessages(prev => prev.map(m =>
         m.id === asstMsgId
@@ -238,7 +308,6 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
           : m
       ));
 
-      // Refresh sidebar to show updated conversation title (backend sets it from first message)
       if (wasNewConversation && fetchConversations) {
         fetchConversations();
       }

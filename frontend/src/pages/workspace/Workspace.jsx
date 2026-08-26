@@ -4,17 +4,11 @@ import { aiService } from '../../services/api';
 import {
   MessageSquare, Plus, Trash2, Search,
   Code2, BrainCircuit, Compass, Calendar, FileSearch,
-  User, LogOut, Menu, Database
+  User, LogOut, Menu, Database, Sparkles, Zap, Play
 } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
-
-import GeneralMode from '../../components/general/GeneralMode';
-import ResearcherMode from '../../components/researcher/ResearcherMode';
-import PlannerMode from '../../components/planner/PlannerMode';
-import AnalyzeMode from '../../components/analyze/AnalyzeMode';
-import KnowledgeMode from '../../components/knowledge/KnowledgeMode';
-import MemoryManager from '../../components/memory/MemoryManager';
+import { IS_PREVIEW_MODE, PREVIEW_SCENARIOS } from '../../config/previewConfig';
 
 // ─── Agent role definitions ──────────────────────────────────────────────────
 const ROLES = [
@@ -23,6 +17,34 @@ const ROLES = [
   { id: 'PLAN', label: 'Planner', icon: Calendar, color: 'text-rose-400', bg: 'bg-rose-400/10', accent: 'hover:border-rose-500/30' },
   { id: 'ANALYZE', label: 'Analyze', icon: FileSearch, color: 'text-amber-400', bg: 'bg-amber-400/10', accent: 'hover:border-amber-500/30' },
   { id: 'KNOWLEDGE', label: 'Knowledge Base', icon: Database, color: 'text-emerald-400', bg: 'bg-emerald-400/10', accent: 'hover:border-emerald-500/30' },
+];
+
+// Initial demo mock conversations for preview mode
+const DEFAULT_PREVIEW_CONVERSATIONS = [
+  {
+    id: 'preview-arch',
+    title: 'Full-Stack System Architecture Blueprint',
+    role: 'GENERAL',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'preview-research',
+    title: 'Agentic RAG & Benchmark Synthesis',
+    role: 'RESEARCH',
+    createdAt: new Date(Date.now() - 3600000).toISOString()
+  },
+  {
+    id: 'preview-plan',
+    title: 'Enterprise Product Launch Roadmap',
+    role: 'PLAN',
+    createdAt: new Date(Date.now() - 7200000).toISOString()
+  },
+  {
+    id: 'preview-analyze',
+    title: 'Strategic SWOT & Scalability Diagnosis',
+    role: 'ANALYZE',
+    createdAt: new Date(Date.now() - 86400000).toISOString()
+  }
 ];
 
 // ─── Route to the right mode component ──────────────────────────────────────
@@ -44,7 +66,7 @@ const Workspace = () => {
   const { id: urlConvId } = useParams(); // Architecture A: read session ID from URL
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [conversations, setConversations] = useState([]);
+  const [conversations, setConversations] = useState(IS_PREVIEW_MODE ? DEFAULT_PREVIEW_CONVERSATIONS : []);
   const [activeConversation, setActiveConversation] = useState(null);
   const [selectedRole, setSelectedRole] = useState('GENERAL');
   const [memoryManagerOpen, setMemoryManagerOpen] = useState(false);
@@ -53,10 +75,39 @@ const Workspace = () => {
   // ─── Fetch conversation list ────────────────────────────────────────────────
   const fetchConversations = useCallback(async () => {
     try {
+      if (IS_PREVIEW_MODE) {
+        setConversations(prev => prev.length > 0 ? prev : DEFAULT_PREVIEW_CONVERSATIONS);
+        return;
+      }
       const res = await aiService.listConversations();
       setConversations(res.data);
     } catch (err) {
-      console.error('Failed to load conversations:', err);
+      if (!IS_PREVIEW_MODE) console.error('Failed to load conversations:', err);
+    }
+  }, []);
+
+  // Initialize preview mock messages if needed
+  useEffect(() => {
+    if (IS_PREVIEW_MODE) {
+      DEFAULT_PREVIEW_CONVERSATIONS.forEach(conv => {
+        const key = `preview_conv_${conv.id}`;
+        if (!sessionStorage.getItem(key)) {
+          const scenario = PREVIEW_SCENARIOS[conv.role]?.[0];
+          if (scenario) {
+            sessionStorage.setItem(key, JSON.stringify([
+              { id: '1', sender: 'USER', content: scenario.prompt },
+              {
+                id: '2',
+                sender: 'ASSISTANT',
+                content: scenario.response,
+                streaming: false,
+                sources: scenario.sources || [],
+                metadata: scenario.metadata || null
+              }
+            ]));
+          }
+        }
+      });
     }
   }, []);
 
@@ -341,6 +392,48 @@ const Workspace = () => {
             <LogOut size={18} />
           </button>
         </div>
+
+        {/* Interactive Feature Tour Bar (Preview Mode) */}
+        {IS_PREVIEW_MODE && (
+          <div className="bg-[#111114] border-b border-white/10 px-4 py-2 flex items-center justify-between gap-2 overflow-x-auto select-none shrink-0 z-20">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-cyan-500/15 border border-cyan-500/30 text-cyan-300">
+                <Sparkles size={11} className="animate-pulse" /> Interactive Feature Preview
+              </span>
+              <span className="text-white/40 text-xs hidden lg:inline">
+                Click any agent mode to test interactive simulation:
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {ROLES.map(role => (
+                <button
+                  key={role.id}
+                  onClick={() => {
+                    const previewConv = conversations.find(c => c.role === role.id);
+                    if (previewConv) {
+                      setActiveConversation(previewConv);
+                      setSelectedRole(role.id);
+                      navigate(`/workspace/chat/${previewConv.id}`, { replace: true });
+                    } else {
+                      setSelectedRole(role.id);
+                      setActiveConversation(null);
+                      navigate('/workspace', { replace: true });
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all border ${
+                    effectiveRole === role.id
+                      ? `${role.bg} ${role.color} border-white/20 shadow-sm`
+                      : 'bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border-transparent'
+                  }`}
+                >
+                  <role.icon size={12} />
+                  <span>{role.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Mode renderer */}
         <div className="flex-1 relative overflow-hidden">

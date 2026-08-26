@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react';
-import { ArrowUp, Square } from 'lucide-react';
+import { ArrowUp, Square, Sparkles } from 'lucide-react';
 import { AGENT_CONFIG } from '../../config/agentConfig';
+import { IS_PREVIEW_MODE } from '../../config/previewConfig';
 
 const AgentInput = ({ agentType, input, setInput, submit, isLoading, handleStop }) => {
   const textareaRef = useRef(null);
@@ -30,11 +31,11 @@ const AgentInput = ({ agentType, input, setInput, submit, isLoading, handleStop 
 
   const getPlaceholder = () => {
     switch (agentType) {
-      case 'GENERAL': return "Ask anything…";
+      case 'GENERAL': return IS_PREVIEW_MODE ? "Type any prompt to test interactive simulation…" : "Ask anything…";
       case 'CODE_RESEARCHER': return "Paste code or describe the problem…";
-      case 'RESEARCH': return "Ask the researcher anything…";
-      case 'PLAN': return "Describe your goal…";
-      case 'ANALYZE': return "Describe what you want analyzed…";
+      case 'RESEARCH': return IS_PREVIEW_MODE ? "Ask anything to preview deep evidence research & fact verification…" : "Ask the researcher anything…";
+      case 'PLAN': return IS_PREVIEW_MODE ? "Describe a project goal to preview multi-stage execution blueprint…" : "Describe your goal…";
+      case 'ANALYZE': return IS_PREVIEW_MODE ? "Describe a system or document to preview SWOT & performance analysis…" : "Describe what you want analyzed…";
       default: return "Ask anything…";
     }
   };
@@ -43,7 +44,18 @@ const AgentInput = ({ agentType, input, setInput, submit, isLoading, handleStop 
     <div className="absolute bottom-0 w-full bg-gradient-to-t from-[#0A0A0B] via-[#0A0A0B] to-transparent pt-12 pb-4 sm:pb-6 px-3 sm:px-6 z-20 pointer-events-none">
       <div className="max-w-3xl mx-auto flex flex-col bg-[#1A1A1C] border border-white/10 rounded-2xl focus-within:border-white/20 transition-colors duration-150 pointer-events-auto shadow-2xl">
         
-        {/* §10 Textarea: text-[14px] leading-[1.6] placeholder:text-white/30 */}
+        {/* Preview Mode Helper Strip */}
+        {IS_PREVIEW_MODE && (
+          <div className="px-4 py-1.5 bg-amber-500/10 border-b border-amber-500/15 flex items-center justify-between text-[11px] text-amber-300/90 rounded-t-2xl">
+            <span className="flex items-center gap-1.5 font-medium">
+              <Sparkles size={11} className="text-amber-400 shrink-0" />
+              <span>Preview Mode: Live model chat is disabled during testing. Responses are simulated.</span>
+            </span>
+            <span className="text-[10px] text-amber-400/60 hidden sm:inline">Rate-Limit Free</span>
+          </div>
+        )}
+
+        {/* Textarea */}
         <textarea
           ref={textareaRef}
           value={input}
@@ -51,7 +63,7 @@ const AgentInput = ({ agentType, input, setInput, submit, isLoading, handleStop 
           onKeyDown={handleKeyDown}
           placeholder={getPlaceholder()}
           rows={1}
-          className="w-full bg-transparent px-4 pt-4 pb-2 text-white text-[14px] leading-[1.6] placeholder:text-white/30 focus:outline-none resize-none max-h-[200px]"
+          className="w-full bg-transparent px-4 pt-3.5 pb-2 text-white text-[14px] leading-[1.6] placeholder:text-white/30 focus:outline-none resize-none max-h-[200px]"
         />
 
         {/* Footer */}

@@ -10,6 +10,13 @@ import { useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { IS_PREVIEW_MODE, PREVIEW_SCENARIOS } from '../../config/previewConfig';
 
+import GeneralMode from '../../components/general/GeneralMode';
+import ResearcherMode from '../../components/researcher/ResearcherMode';
+import PlannerMode from '../../components/planner/PlannerMode';
+import AnalyzeMode from '../../components/analyze/AnalyzeMode';
+import KnowledgeMode from '../../components/knowledge/KnowledgeMode';
+import MemoryManager from '../../components/memory/MemoryManager';
+
 // ─── Agent role definitions ──────────────────────────────────────────────────
 const ROLES = [
   { id: 'GENERAL', label: 'General', icon: BrainCircuit, color: 'text-blue-400', bg: 'bg-blue-400/10', accent: 'hover:border-blue-500/30' },

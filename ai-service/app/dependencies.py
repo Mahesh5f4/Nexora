@@ -13,7 +13,7 @@ from app.services.semantic_cache import SemanticCache
 
 logger = logging.getLogger(__name__)
 
-_lock = threading.Lock()
+_lock = threading.RLock()
 _embedding_provider = None
 _embedding_service = None
 _semantic_cache = None

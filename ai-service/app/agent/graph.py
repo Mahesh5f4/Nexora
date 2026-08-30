@@ -396,8 +396,14 @@ class AgentGraph:
             logger.error(f"Failed to list user memories: {e}")
             state["user_memories"] = []
             
-        # 2. Fast check for LLM extraction: only extract if explicit memory intent was detected
-        if not state.get("needs_memory"):
+        # 2. Extract facts from personal statements or explicit memory intents
+        has_personal_fact_signal = bool(re.search(
+            r'\b(i am|i\'m|my goal|my favorite|i prefer|i like|i love|i work|i live|my name|i use|i study|i plan|i want to|remember|my stack|my experience|my background|my job|my role|my company|my project)\b',
+            query,
+            re.IGNORECASE
+        ))
+        
+        if not (state.get("needs_memory") or has_personal_fact_signal):
             state["memory_status"] = "SKIPPED"
             return state
             

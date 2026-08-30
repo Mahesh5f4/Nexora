@@ -223,14 +223,18 @@ public class ConversationService {
                                 Object dataToSend = data;
                                 try {
                                     com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(data);
-                                    if ("token".equals(eventName) && node.has("text")) {
-                                        String textChunk = node.get("text").asText();
-                                        fullAnswer.append(textChunk);
-                                        // Keep dataToSend as the JSON node to safely transmit newlines over SSE
-                                        dataToSend = node;
-                                    } else {
-                                        dataToSend = node;
+                                    if (("token".equals(eventName) || "message".equals(eventName)) && node != null) {
+                                        if (node.has("text")) {
+                                            fullAnswer.append(node.get("text").asText());
+                                        } else if (node.has("content")) {
+                                            fullAnswer.append(node.get("content").asText());
+                                        } else if (node.has("token")) {
+                                            fullAnswer.append(node.get("token").asText());
+                                        } else if (node.isTextual()) {
+                                            fullAnswer.append(node.asText());
+                                        }
                                     }
+                                    dataToSend = node;
                                 } catch (Exception ignored) {
                                 }
 
@@ -245,8 +249,12 @@ public class ConversationService {
                     () -> {
                         try {
                             // 4. Save ASSISTANT message
-                            Message assistantMessage = new Message(conversation, MessageRole.ASSISTANT, fullAnswer.toString());
-                            messageRepository.save(assistantMessage);
+                            String answerText = fullAnswer.toString().trim();
+                            if (!answerText.isEmpty()) {
+                                Conversation conv = conversationRepository.findById(conversation.getId()).orElse(conversation);
+                                Message assistantMessage = new Message(conv, MessageRole.ASSISTANT, answerText);
+                                messageRepository.save(assistantMessage);
+                            }
                             
                             emitter.complete();
                         } catch (Exception e) {

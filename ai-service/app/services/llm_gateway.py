@@ -55,12 +55,12 @@ class LLMGateway:
             "api_key": api_key,
             "openai_api_key": api_key,
             "base_url": "https://openrouter.ai/api/v1",
-            "max_retries": 1
+            "max_retries": 0
         }
 
-        # Active free models on OpenRouter
-        primary_llm = ChatOpenAI(model="google/gemma-4-31b-it:free", **base_params)
-        fallback_1 = ChatOpenAI(model="nvidia/nemotron-3.5-lightning:free", **base_params)
+        # Active free models on OpenRouter - optimized with nemotron as primary (healthy upstream)
+        primary_llm = ChatOpenAI(model="nvidia/nemotron-3.5-lightning:free", **base_params)
+        fallback_1 = ChatOpenAI(model="google/gemma-4-31b-it:free", **base_params)
         fallback_2 = ChatOpenAI(model="google/gemma-4-26b-a4b-it:free", **base_params)
         fallback_3 = ChatOpenAI(model="nvidia/nemotron-3-super-120b-a12b:free", **base_params)
         fallback_4 = ChatOpenAI(model="z-ai/glm-5.2:free", **base_params)

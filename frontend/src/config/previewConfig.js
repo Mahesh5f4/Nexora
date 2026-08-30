@@ -7,7 +7,7 @@
  * Flip IS_PREVIEW_MODE = false when ready to restore live backend AI streaming.
  */
 
-export const IS_PREVIEW_MODE = true;
+export const IS_PREVIEW_MODE = false;
 
 // Pre-configured standout scenarios for each agent persona
 export const PREVIEW_SCENARIOS = {

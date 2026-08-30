@@ -313,7 +313,6 @@ const Home = () => {
           <p className="text-white/50 text-base sm:text-lg max-w-lg mb-10 leading-relaxed font-light">
             Experience a unified workspace combining deep research, precise code generation, and intelligent multi-step planning in one seamless interface. Your workflow, supercharged.
           </p>
-
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
             <Link 
               to="/workspace"
@@ -321,7 +320,7 @@ const Home = () => {
             >
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
               <Sparkles size={18} className="text-purple-600" />
-              Launch Interactive Preview <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              Launch Workspace <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
 
             <a 
@@ -339,7 +338,7 @@ const Home = () => {
           animate={{ 
             opacity: 1, 
             x: 0, 
-            scale: 1,
+            scale: 1, 
             y: [-5, 5, -5]
           }}
           transition={{ 
@@ -362,7 +361,7 @@ const Home = () => {
                 <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
               </div>
               <div className="mx-auto text-[10px] uppercase tracking-widest font-bold text-white/30 flex items-center gap-2">
-                <Play size={10} className="text-cyan-400" /> Interactive Simulation Preview
+                <Play size={10} className="text-cyan-400" /> ThinkAction AI Workspace
               </div>
             </div>
 
@@ -413,7 +412,7 @@ const Home = () => {
                   to="/workspace"
                   className="flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-sm transition-all shadow-lg hover:shadow-cyan-500/25"
                 >
-                  <Sparkles size={16} /> Test All Personas in Workspace Preview
+                  <Sparkles size={16} /> Launch All Personas in Workspace
                 </Link>
               </div>
             </div>

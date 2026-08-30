@@ -8,12 +8,6 @@ import CodeBlock from '../chat/CodeBlock';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
 import { documentService } from '../../services/api';
 import { copyToClipboard } from '../../utils/clipboard';
-import { IS_PREVIEW_MODE } from '../../config/previewConfig';
-
-const MOCK_PREVIEW_DOCS = [
-  { id: 'doc_sec_2026_01', filename: 'ThinkAction_Architecture_Whitepaper_v2.pdf', status: 'COMPLETED', size: 1048576 },
-  { id: 'doc_sec_2026_02', filename: 'Security_and_Compliance_Summary.docx', status: 'COMPLETED', size: 524288 }
-];
 
 const markdownComponents = {
   p({ node, children, ...props }) {
@@ -143,8 +137,8 @@ const KnowledgeMode = ({ activeConversation, setActiveConversation, fetchConvers
   } = useAgentStream('KNOWLEDGE', activeConversation, setActiveConversation, fetchConversations, onConversationCreated);
 
   const [input, setInput] = useState('');
-  const [documents, setDocuments] = useState(IS_PREVIEW_MODE ? MOCK_PREVIEW_DOCS : []);
-  const [selectedDocId, setSelectedDocId] = useState(IS_PREVIEW_MODE ? MOCK_PREVIEW_DOCS[0].id : '');
+  const [documents, setDocuments] = useState([]);
+  const [selectedDocId, setSelectedDocId] = useState('');
   const [uploading, setUploading] = useState(false);
   const textareaRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -152,18 +146,13 @@ const KnowledgeMode = ({ activeConversation, setActiveConversation, fetchConvers
 
   const fetchDocs = () => {
     documentService.getDocuments().then(res => {
-      const docs = res.data && res.data.length > 0 ? res.data : (IS_PREVIEW_MODE ? MOCK_PREVIEW_DOCS : []);
+      const docs = res.data || [];
       setDocuments(docs);
       if (docs.length > 0 && !selectedDocId) {
         setSelectedDocId(docs[0].id);
       }
     }).catch(err => {
-      if (IS_PREVIEW_MODE) {
-        setDocuments(MOCK_PREVIEW_DOCS);
-        setSelectedDocId(MOCK_PREVIEW_DOCS[0].id);
-      } else {
-        console.error(err);
-      }
+      console.error(err);
     });
   };
 

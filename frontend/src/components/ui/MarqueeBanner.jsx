@@ -1,11 +1,8 @@
 import React from 'react';
 import { Zap, Sparkles } from 'lucide-react';
-import { IS_PREVIEW_MODE } from '../../config/previewConfig';
 
 const MarqueeBanner = () => {
-  const text = IS_PREVIEW_MODE
-    ? "🚀 NOTICE: AI Model Benchmarking & Testing Active — Live chat is locked to Interactive Feature Preview to protect rate limits. Explore full agent simulations & architecture!"
-    : "⚡ NOTICE: This application is currently running on free-tier community resources. Quotas & rate limits apply — please don't expect too many responses. Thank you for your understanding! 🚀";
+  const text = "⚡ NOTICE: ThinkAction AI Live — Multi-Agent Orchestration, Vector RAG & Real-Time Evidence Retrieval. 🚀";
 
   return (
     <div

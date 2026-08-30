@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Brain, Trash2, X, RefreshCw } from 'lucide-react';
 import { aiService } from '../../services/api';
-import { IS_PREVIEW_MODE } from '../../config/previewConfig';
-
-const MOCK_PREVIEW_MEMORIES = [
-  { id: 'mem-1', content: 'Prefers TypeScript, React, and modular Spring Boot microservice architectures with non-blocking WebFlux.', created_at: new Date(Date.now() - 86400000).toISOString() },
-  { id: 'mem-2', content: 'Primary objective is building a high-concurrency event management platform with LangGraph agent workflows and Qdrant vector retrieval.', created_at: new Date(Date.now() - 172800000).toISOString() },
-  { id: 'mem-3', content: 'Demands strict evidence verification, source citations, and zero token hallucinations on all enterprise research tasks.', created_at: new Date(Date.now() - 259200000).toISOString() }
-];
 
 const MemoryManager = ({ isOpen, onClose }) => {
-  const [memories, setMemories] = useState(IS_PREVIEW_MODE ? MOCK_PREVIEW_MEMORIES : []);
+  const [memories, setMemories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -24,17 +17,12 @@ const MemoryManager = ({ isOpen, onClose }) => {
     try {
       setLoading(true);
       const res = await aiService.listUserMemory();
-      const mems = res.data.memories && res.data.memories.length > 0 ? res.data.memories : (IS_PREVIEW_MODE ? MOCK_PREVIEW_MEMORIES : []);
+      const mems = res.data?.memories || [];
       setMemories(mems);
       setError(null);
     } catch (err) {
-      if (IS_PREVIEW_MODE) {
-        setMemories(MOCK_PREVIEW_MEMORIES);
-        setError(null);
-      } else {
-        setError('Failed to load memories. Please try again.');
-        console.error(err);
-      }
+      setError('Failed to load memories. Please try again.');
+      console.error(err);
     } finally {
       setLoading(false);
     }

@@ -125,7 +125,7 @@ class TestAnalyzeErrorHandling:
 
     @patch("app.api.internal_agent.AgentGraph")
     @pytest.mark.asyncio
-        async def test_provider_503_propagates_non_stream(self, mock_graph_cls):
+    async def test_provider_503_propagates_non_stream(self, mock_graph_cls):
         """Provider 503 is propagated safely in non-streaming."""
         svc = _mock_rag_service()
         svc.spring_gateway_client.execute_prompt.side_effect = HTTPException(status_code=503, detail="Unavailable")
@@ -211,8 +211,3 @@ class TestAnalyzeErrorHandling:
         resp = await ask_agent(req, svc)
         
         assert "could not be reliably validated" in resp.answer
-
-
-    @patch("app.api.internal_agent.AgentGraph")
-    @pytest.mark.asyncio
-    

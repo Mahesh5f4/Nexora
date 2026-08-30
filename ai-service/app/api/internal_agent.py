@@ -238,7 +238,11 @@ async def ask_agent_stream(
                         url_pattern = validator.url_pattern
                         
                         aborted = False
-                        for chunk in rag_service.llm_gateway.execute_prompt_stream(ai_req):
+                        for event_type, chunk in rag_service.llm_gateway.execute_prompt_stream(ai_req):
+                            if event_type == "thinking":
+                                yield f"event: thinking\ndata: {json.dumps({'text': chunk})}\n\n"
+                                continue
+
                             full_response += chunk
                             
                             found_urls = set(url_pattern.findall(full_response))
@@ -279,9 +283,12 @@ async def ask_agent_stream(
                             yield f"event: metadata\ndata: {json.dumps(metadata)}\n\n"
                     else:
                         try:
-                            for chunk in rag_service.llm_gateway.execute_prompt_stream(ai_req):
+                            for event_type, chunk in rag_service.llm_gateway.execute_prompt_stream(ai_req):
                                 if chunk:
-                                    yield f"event: token\ndata: {json.dumps({'text': chunk})}\n\n"
+                                    if event_type == "thinking":
+                                        yield f"event: thinking\ndata: {json.dumps({'text': chunk})}\n\n"
+                                    else:
+                                        yield f"event: token\ndata: {json.dumps({'text': chunk})}\n\n"
                         except Exception as gen_err:
                             logger.error(f"LLM generation stream failed: {gen_err}")
                             # Fallback: show sources found with a helpful message

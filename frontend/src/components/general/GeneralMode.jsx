@@ -7,6 +7,7 @@ import { useAgentStream } from '../../hooks/useAgentStream';
 import CodeBlock from '../chat/CodeBlock';
 import AgentInput from '../chat/AgentInput';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
+import ThinkingAccordion from '../chat/ThinkingAccordion';
 import { copyToClipboard } from '../../utils/clipboard';
 
 /**
@@ -83,6 +84,7 @@ const MessageBubble = React.memo(({ msg }) => {
       
       <div className={`flex-1 overflow-hidden ${isUser ? 'flex flex-col items-end' : ''}`}>
         {!isUser && msg.metadata && <SourceRoutingTags flags={msg.metadata} />}
+        {!isUser && msg.thinking && <ThinkingAccordion thinking={msg.thinking} isStreaming={msg.streaming && !msg.content} />}
         
         <div className={`px-4 py-3 ${
           isUser 

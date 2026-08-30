@@ -4,11 +4,34 @@ import { IS_PREVIEW_MODE, generateAdaptivePreviewResponse } from '../config/prev
 
 export function cleanResponseText(text) {
   if (!text) return '';
-  // Strip <think>...</think> tags if leaked
-  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
-  // Strip 'Here's a thinking process: ...' blocks if leaked
-  cleaned = cleaned.replace(/^Here's a thinking process:[\s\S]*?(?=\n\n(?:[A-Z0-9#\*]|Hello|Hi|Sure|To |In |The |Based |According |\Z))/i, '');
-  return cleaned.trimStart();
+  const { content } = parseThinkingAndContent(text);
+  return content;
+}
+
+export function parseThinkingAndContent(text) {
+  if (!text) return { thinking: '', content: '' };
+  
+  let thinking = '';
+  let content = text;
+  
+  // Extract <think>...</think>
+  const thinkMatch = text.match(/<think>([\s\S]*?)<\/think>/i);
+  if (thinkMatch) {
+    thinking = thinkMatch[1].trim();
+    content = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trimStart();
+  }
+  
+  // Extract 'Here's a thinking process:' or 'Analyze User Input:' blocks
+  const proseThinkMatch = content.match(/^((?:Here'?s a thinking process:|Analyze User Input:|Thinking Process:|Draft Content \(mental\):)[\s\S]*?)(?=\n\n(?:[A-Z0-9#\*]|Hello|Hi|Sure|To |In |The |Based |According |\Z))/i);
+  if (proseThinkMatch) {
+    thinking = (thinking ? thinking + '\n\n' : '') + proseThinkMatch[1].trim();
+    content = content.substring(proseThinkMatch[0].length).trimStart();
+  }
+
+  // Strip Chinese boilerplate if any
+  content = content.replace(/我是一个有帮助的[\s\S]*?(?=\n\n|\Z)/g, '').trimStart();
+
+  return { thinking, content };
 }
 
 /**
@@ -25,6 +48,7 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
   const isLoadingRef = useRef(false);
   const currentConvIdRef = useRef(null);
   const streamBufferRef = useRef('');
+  const streamThinkingRef = useRef('');
   const lastRenderedLengthRef = useRef(0);
   const rafRef = useRef(null);
   const abortControllerRef = useRef(null);
@@ -48,8 +72,15 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
 
       const res = await aiService.getMessages(id);
       const msgs = res.data.content || res.data || [];
-      setMessages(msgs);
-      const lastMsg = msgs[msgs.length - 1];
+      const parsedMsgs = msgs.map(m => {
+        if (m.sender === 'ASSISTANT' && m.content) {
+          const { thinking, content } = parseThinkingAndContent(m.content);
+          return { ...m, content, thinking: m.thinking || thinking };
+        }
+        return m;
+      });
+      setMessages(parsedMsgs);
+      const lastMsg = parsedMsgs[parsedMsgs.length - 1];
       if (lastMsg?.metadata?.evidence) setActiveSources(lastMsg.metadata.evidence);
     } catch {
       if (!IS_PREVIEW_MODE) {
@@ -76,98 +107,46 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
   // ─── Send a message and stream the response ─────────────────────────────────
   const handleSend = useCallback(async (content, options = {}) => {
     if (!content.trim() || isLoadingRef.current) return;
-    isLoadingRef.current = true;
-
-    // BUG 3 FIX — Analyze agent short-input guard
-    if (role === 'ANALYZE' && content.trim().length < 10) {
-      const clarificationId = Date.now().toString();
-      setMessages(prev => [
-        ...prev,
-        { id: (Date.now() - 1).toString(), sender: 'USER', content },
-        {
-          id: clarificationId,
-          sender: 'ASSISTANT',
-          content:
-            'Please describe the situation, code, data, or decision you\'d like me to analyze. ' +
-            'The more context you provide, the more accurate my analysis will be.',
-          streaming: false,
-          sources: [],
-          metadata: null,
-        },
-      ]);
-      isLoadingRef.current = false;
-      return;
-    }
-
-    setError(null);
-
-    const userMsgId = Date.now().toString();
-    const asstMsgId = (Date.now() + 1).toString();
-
-    setMessages(prev => [
-      ...prev,
-      { id: userMsgId, sender: 'USER', content },
-      { id: asstMsgId, sender: 'ASSISTANT', content: '', streaming: true, sources: [], metadata: null },
-    ]);
-    setIsLoading(true);
 
     let convId = activeConversation?.id;
+    const userMsgId = `user-${Date.now()}`;
+    const asstMsgId = `asst-${Date.now()}`;
+
+    const newMessages = [
+      ...messages,
+      { id: userMsgId, sender: 'USER', content: content.trim(), createdAt: new Date().toISOString() },
+      { id: asstMsgId, sender: 'ASSISTANT', content: '', thinking: '', streaming: true, sources: [], metadata: null }
+    ];
+
+    setMessages(newMessages);
+    setIsLoading(true);
+    isLoadingRef.current = true;
+    setError(null);
+    setActiveSources([]);
 
     // ─── PREVIEW SIMULATION MODE ──────────────────────────────────────────────
     if (IS_PREVIEW_MODE) {
-      const mockResult = generateAdaptivePreviewResponse(role, content);
-      
-      if (!convId) {
-        convId = `preview-${Date.now()}`;
-        currentConvIdRef.current = convId;
-        const mockConv = {
-          id: convId,
-          title: content.length > 35 ? content.substring(0, 32) + '...' : content,
-          role,
-          createdAt: new Date().toISOString()
-        };
-        if (onConversationCreated) {
-          onConversationCreated(mockConv, content);
-        } else if (setActiveConversation) {
-          setActiveConversation(mockConv);
-        }
-      }
-
-      // Simulate source citations arrival
-      if (mockResult.sources && mockResult.sources.length > 0) {
-        setTimeout(() => {
-          setActiveSources(mockResult.sources);
-          setMessages(prev => prev.map(m =>
-            m.id === asstMsgId ? { ...m, sources: mockResult.sources } : m
-          ));
-        }, 300);
-      }
-
-      if (mockResult.metadata) {
-        setMessages(prev => prev.map(m =>
-          m.id === asstMsgId ? { ...m, metadata: mockResult.metadata } : m
-        ));
-      }
-
-      // Typewriter streaming loop
-      let charIndex = 0;
+      const mockResult = generateAdaptivePreviewResponse(role, content.trim(), options);
       const fullText = mockResult.content;
-      
-      const streamTimer = setInterval(() => {
-        if (!isLoadingRef.current) {
-          clearInterval(streamTimer);
-          return;
-        }
+      let charIndex = 0;
 
-        // Adaptive chunk size (6-12 chars per 16ms tick for ultra smooth typing)
-        charIndex += Math.floor(Math.random() * 6) + 6;
+      const typeInterval = setInterval(() => {
+        charIndex += Math.floor(Math.random() * 8) + 4;
         if (charIndex >= fullText.length) {
-          charIndex = fullText.length;
-          clearInterval(streamTimer);
-          
+          clearInterval(typeInterval);
+          const { thinking, content: cleanText } = parseThinkingAndContent(fullText);
           setMessages(prev => {
             const updated = prev.map(m =>
-              m.id === asstMsgId ? { ...m, content: fullText, streaming: false } : m
+              m.id === asstMsgId
+                ? {
+                    ...m,
+                    content: cleanText,
+                    thinking,
+                    streaming: false,
+                    sources: mockResult.sources || [],
+                    metadata: mockResult.metadata || null
+                  }
+                : m
             );
             if (convId) {
               sessionStorage.setItem(`preview_conv_${convId}`, JSON.stringify(updated));
@@ -179,8 +158,9 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
           isLoadingRef.current = false;
         } else {
           const currentSlice = fullText.substring(0, charIndex);
+          const { thinking, content: cleanText } = parseThinkingAndContent(currentSlice);
           setMessages(prev => prev.map(m =>
-            m.id === asstMsgId ? { ...m, content: currentSlice } : m
+            m.id === asstMsgId ? { ...m, content: cleanText, thinking } : m
           ));
         }
       }, 16);
@@ -191,7 +171,6 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
     // ─── LIVE BACKEND API STREAMING (IS_PREVIEW_MODE = false) ─────────────────
     const controller = new AbortController();
     abortControllerRef.current = controller;
-    let wasNewConversation = !convId;
 
     try {
       if (!convId) {
@@ -213,19 +192,25 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
       }
 
       streamBufferRef.current = '';
+      streamThinkingRef.current = '';
       lastRenderedLengthRef.current = 0;
 
       const startTypewriter = () => {
         if (rafRef.current) return;
         const updateLoop = () => {
-          if (lastRenderedLengthRef.current < streamBufferRef.current.length) {
-            const remaining = streamBufferRef.current.length - lastRenderedLengthRef.current;
+          const { thinking, content: cleanText } = parseThinkingAndContent(streamBufferRef.current);
+          if (thinking && thinking !== streamThinkingRef.current) {
+            streamThinkingRef.current = thinking;
+          }
+
+          if (lastRenderedLengthRef.current < cleanText.length) {
+            const remaining = cleanText.length - lastRenderedLengthRef.current;
             const chunkSize = Math.max(3, Math.ceil(remaining / 4));
             lastRenderedLengthRef.current += chunkSize;
             
-            const currentText = streamBufferRef.current.substring(0, lastRenderedLengthRef.current);
+            const currentText = cleanText.substring(0, lastRenderedLengthRef.current);
             setMessages(prev => prev.map(m =>
-              m.id === asstMsgId ? { ...m, content: currentText } : m
+              m.id === asstMsgId ? { ...m, content: currentText, thinking: streamThinkingRef.current } : m
             ));
           }
           rafRef.current = requestAnimationFrame(updateLoop);
@@ -243,7 +228,23 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
           documentId: options.documentId
         },
         (eventName, dataStr) => {
-          if (eventName === 'token') {
+          if (eventName === 'thinking') {
+            try {
+              const node = JSON.parse(dataStr);
+              const chunk = node.content || node.text || node.token || '';
+              if (chunk) {
+                streamThinkingRef.current += chunk;
+                setMessages(prev => prev.map(m =>
+                  m.id === asstMsgId ? { ...m, thinking: streamThinkingRef.current } : m
+                ));
+              }
+            } catch {
+              streamThinkingRef.current += dataStr;
+              setMessages(prev => prev.map(m =>
+                m.id === asstMsgId ? { ...m, thinking: streamThinkingRef.current } : m
+              ));
+            }
+          } else if (eventName === 'token') {
             startTypewriter();
             try {
               const node = JSON.parse(dataStr);
@@ -302,9 +303,11 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
       );
 
       cancelAnimationFrame(rafRef.current);
+      const { thinking: finalThinking, content: finalCleanContent } = parseThinkingAndContent(streamBufferRef.current);
+      const activeThinking = finalThinking || streamThinkingRef.current;
       setMessages(prev => prev.map(m =>
         m.id === asstMsgId
-          ? { ...m, streaming: false, content: cleanResponseText(streamBufferRef.current) }
+          ? { ...m, streaming: false, content: finalCleanContent, thinking: activeThinking }
           : m
       ));
 

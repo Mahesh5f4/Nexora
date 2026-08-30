@@ -1,7 +1,7 @@
 import os
 import re
 import logging
-from typing import Generator
+from typing import Generator, Tuple
 
 from langchain_openai import ChatOpenAI
 from langchain.globals import set_llm_cache
@@ -18,6 +18,25 @@ set_llm_cache(InMemoryCache())
 logger.info("LangChain InMemoryCache initialized globally.")
 
 
+THINKING_PATTERNS = [
+    r"^here'?s a thinking process",
+    r"^thinking process",
+    r"^analyze user input",
+    r"^analysis of user input",
+    r"^understanding the user'?s request",
+    r"^identify core task",
+    r"^determine knowledge source",
+    r"^structure the response",
+    r"^draft content",
+    r"^internal thoughts",
+    r"^step 1: understand the user",
+    r"^我是一个有帮助的"
+]
+
+def is_thinking_header(text: str) -> bool:
+    t = text.strip().lower()
+    return any(re.search(p, t, re.IGNORECASE) for p in THINKING_PATTERNS)
+
 def clean_reasoning_output(text: str) -> str:
     """Strips out <think>...</think> and 'Here\\'s a thinking process:' blocks if leaked by reasoning models."""
     if not text:
@@ -25,7 +44,11 @@ def clean_reasoning_output(text: str) -> str:
     # Strip <think>...</think> tags
     cleaned = re.sub(r'<think>[\s\S]*?</think>', '', text, flags=re.IGNORECASE)
     # Strip 'Here's a thinking process: ...' blocks
-    cleaned = re.sub(r"^Here's a thinking process:[\s\S]*?(?=\n\n(?:[A-Z0-9#\*]|Hello|Hi|Sure|To |In |The |Based |According |\Z))", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"^Here'?s a thinking process:[\s\S]*?(?=\n\n(?:[A-Z0-9#\*]|Hello|Hi|Sure|To |In |The |Based |According |\Z))", "", cleaned, flags=re.IGNORECASE)
+    # Strip 'Analyze User Input: ...' blocks
+    cleaned = re.sub(r"^Analyze User Input:[\s\S]*?(?=\n\n(?:[A-Z0-9#\*]|Hello|Hi|Sure|To |In |The |Based |According |\Z))", "", cleaned, flags=re.IGNORECASE)
+    # Strip Chinese boilerplate
+    cleaned = re.sub(r"我是一个有帮助的[\s\S]*?(?=\n\n|\Z)", "", cleaned)
     return cleaned.strip()
 
 
@@ -138,11 +161,10 @@ class LLMGateway:
 
         return MockResponse(content)
 
-    def execute_prompt_stream(self, request: AiExecuteRequest) -> Generator[str, None, None]:
+    def execute_prompt_stream(self, request: AiExecuteRequest) -> Generator[Tuple[str, str], None, None]:
         """
-        Streaming prompt execution with two-level caching:
-          1. Semantic cache (yields full cached answer immediately if hit).
-          2. LangChain ChatOpenAI stream (yields clean token chunks).
+        Streaming prompt execution with two-level caching and thinking separation.
+        Yields (event_type, chunk_text) where event_type is 'thinking' or 'token'.
         """
         self._ensure_llm()
         cache_key = self._cache_key(request)
@@ -152,7 +174,7 @@ class LLMGateway:
             cached = self._semantic_cache.get(cache_key, system_prompt=request.systemPrompt)
             if cached is not None:
                 logger.info("Semantic cache HIT for stream — yielding cached response.")
-                yield cached
+                yield ("token", cached)
                 return
 
         # --- Layer 2 + 3: LangChain → OpenRouter ---
@@ -163,13 +185,86 @@ class LLMGateway:
         )
         logger.info("Streaming prompt via Python LangChain Gateway...")
         
-        full_response = []
+        full_tokens = []
+        in_think_tag = False
+        in_prose_thinking = None
+        header_buffer = ""
+
         for chunk in llm_with_args.stream(messages):
-            if chunk.content:
-                full_response.append(chunk.content)
-                yield chunk.content
-                
+            # Explicit reasoning content
+            reasoning_kwarg = chunk.additional_kwargs.get("reasoning_content") or getattr(chunk, "reasoning_content", None)
+            if reasoning_kwarg:
+                yield ("thinking", str(reasoning_kwarg))
+
+            content = chunk.content
+            if not content or not isinstance(content, str):
+                continue
+
+            while content:
+                if not in_think_tag:
+                    if "<think>" in content.lower():
+                        pre, post = re.split(r'<think>', content, flags=re.IGNORECASE, maxsplit=1)
+                        if pre:
+                            if in_prose_thinking is False:
+                                full_tokens.append(pre)
+                                yield ("token", pre)
+                            else:
+                                header_buffer += pre
+                        in_think_tag = True
+                        content = post
+                    else:
+                        if in_prose_thinking is None:
+                            header_buffer += content
+                            if "\n\n" in header_buffer or len(header_buffer) > 250:
+                                if is_thinking_header(header_buffer):
+                                    if "\n\n" in header_buffer:
+                                        parts = header_buffer.split("\n\n", 1)
+                                        yield ("thinking", parts[0] + "\n\n")
+                                        in_prose_thinking = False
+                                        if parts[1]:
+                                            full_tokens.append(parts[1])
+                                            yield ("token", parts[1])
+                                    else:
+                                        in_prose_thinking = True
+                                        yield ("thinking", header_buffer)
+                                else:
+                                    in_prose_thinking = False
+                                    full_tokens.append(header_buffer)
+                                    yield ("token", header_buffer)
+                                header_buffer = ""
+                        elif in_prose_thinking is True:
+                            if "\n\n" in content:
+                                parts = content.split("\n\n", 1)
+                                yield ("thinking", parts[0] + "\n\n")
+                                in_prose_thinking = False
+                                if parts[1]:
+                                    full_tokens.append(parts[1])
+                                    yield ("token", parts[1])
+                            else:
+                                yield ("thinking", content)
+                        else:
+                            full_tokens.append(content)
+                            yield ("token", content)
+                        content = ""
+                else:
+                    if "</think>" in content.lower():
+                        think_text, post = re.split(r'</think>', content, flags=re.IGNORECASE, maxsplit=1)
+                        if think_text:
+                            yield ("thinking", think_text)
+                        in_think_tag = False
+                        content = post.lstrip()
+                    else:
+                        yield ("thinking", content)
+                        content = ""
+
+        if header_buffer:
+            if is_thinking_header(header_buffer):
+                yield ("thinking", header_buffer)
+            else:
+                full_tokens.append(header_buffer)
+                yield ("token", header_buffer)
+
         # Store in semantic cache after streaming completes
-        if self._semantic_cache is not None and full_response:
-            self._semantic_cache.store(cache_key, "".join(full_response), system_prompt=request.systemPrompt)
+        if self._semantic_cache is not None and full_tokens:
+            self._semantic_cache.store(cache_key, "".join(full_tokens), system_prompt=request.systemPrompt)
 

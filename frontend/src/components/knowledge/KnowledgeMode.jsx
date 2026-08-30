@@ -6,6 +6,7 @@ import { Database, User, RefreshCw, Plus, Check, Copy, Globe, ChevronDown, Uploa
 import { useAgentStream } from '../../hooks/useAgentStream';
 import CodeBlock from '../chat/CodeBlock';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
+import ThinkingAccordion from '../chat/ThinkingAccordion';
 import { documentService } from '../../services/api';
 import { copyToClipboard } from '../../utils/clipboard';
 
@@ -76,6 +77,7 @@ const MessageBubble = React.memo(({ msg }) => {
       
       <div className={`flex-1 overflow-hidden ${isUser ? 'flex flex-col items-end' : ''}`}>
         {!isUser && msg.metadata && <SourceRoutingTags flags={msg.metadata} />}
+        {!isUser && msg.thinking && <ThinkingAccordion thinking={msg.thinking} isStreaming={msg.streaming && !msg.content} />}
         
         <div className={`px-5 py-4 ${
           isUser 

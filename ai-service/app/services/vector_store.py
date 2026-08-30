@@ -33,6 +33,15 @@ class QdrantVectorStore(BaseVectorStore):
     def __init__(self, client, collection_name: str = None):
         self._client = client
         self._collection_name = collection_name or settings.qdrant_collection_name
+        self._ensure_collection()
+
+    def _ensure_collection(self):
+        try:
+            from app.services.qdrant_init import initialize_qdrant_collection
+            initialize_qdrant_collection(self._client, self._collection_name, dimension=384)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Could not auto-initialize Qdrant collection {self._collection_name}: {e}")
         
     def upsert(self, user_id: str, document_id: str, chunks: List[str], vectors: List[List[float]], metadata: Optional[Dict[str, Any]] = None):
         from qdrant_client.models import PointStruct
@@ -90,12 +99,17 @@ class QdrantVectorStore(BaseVectorStore):
             
         user_filter = Filter(must=must_conditions)
         
-        search_result = self._client.search(
-            collection_name=self._collection_name,
-            query_vector=query_vector,
-            query_filter=user_filter,
-            limit=top_k
-        )
+        try:
+            search_result = self._client.search(
+                collection_name=self._collection_name,
+                query_vector=query_vector,
+                query_filter=user_filter,
+                limit=top_k
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Qdrant search warning for collection {self._collection_name}: {e}")
+            return []
         
         retrieved_chunks = []
         for scored_point in search_result:

@@ -227,30 +227,6 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
 
       streamBufferRef.current = '';
       streamThinkingRef.current = '';
-      lastRenderedLengthRef.current = 0;
-
-      const startTypewriter = () => {
-        if (rafRef.current) return;
-        const updateLoop = () => {
-          const { thinking, content: cleanText } = parseThinkingAndContent(streamBufferRef.current);
-          if (thinking && thinking !== streamThinkingRef.current) {
-            streamThinkingRef.current = thinking;
-          }
-
-          if (lastRenderedLengthRef.current < cleanText.length) {
-            const remaining = cleanText.length - lastRenderedLengthRef.current;
-            const chunkSize = Math.max(3, Math.ceil(remaining / 4));
-            lastRenderedLengthRef.current += chunkSize;
-            
-            const currentText = cleanText.substring(0, lastRenderedLengthRef.current);
-            setMessages(prev => prev.map(m =>
-              m.id === asstMsgId ? { ...m, content: currentText, thinking: streamThinkingRef.current } : m
-            ));
-          }
-          rafRef.current = requestAnimationFrame(updateLoop);
-        };
-        rafRef.current = requestAnimationFrame(updateLoop);
-      };
 
       await aiService.streamMessage(
         convId,
@@ -278,34 +254,30 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
                 m.id === asstMsgId ? { ...m, thinking: streamThinkingRef.current } : m
               ));
             }
-          } else if (eventName === 'token') {
-            startTypewriter();
+          } else if (eventName === 'token' || eventName === 'message') {
             try {
               const node = JSON.parse(dataStr);
-              const chunk = node.content || node.text || node.token;
-              if (chunk) streamBufferRef.current += chunk;
-              
-              if (node.metadata) {
-                setMessages(prev => prev.map(m =>
-                  m.id === asstMsgId ? { ...m, metadata: node.metadata } : m
-                ));
-              }
-            } catch {
-              streamBufferRef.current += dataStr;
-            }
-          } else if (eventName === 'message') {
-            startTypewriter();
-            try {
-              const node = JSON.parse(dataStr);
-              const chunk = node.content || node.text || node.token;
+              const chunk = node.content || node.text || node.token || (typeof node === 'string' ? node : '');
               if (chunk) {
                 streamBufferRef.current += chunk;
-              } else if (typeof node === 'string') {
-                streamBufferRef.current += node;
+                const { thinking, content: cleanText } = parseThinkingAndContent(streamBufferRef.current);
+                if (thinking && thinking !== streamThinkingRef.current) {
+                  streamThinkingRef.current = thinking;
+                }
+                setMessages(prev => prev.map(m =>
+                  m.id === asstMsgId ? { ...m, content: cleanText, thinking: streamThinkingRef.current, metadata: node.metadata || m.metadata } : m
+                ));
               }
             } catch {
               if (dataStr && dataStr !== '{}') {
                 streamBufferRef.current += dataStr;
+                const { thinking, content: cleanText } = parseThinkingAndContent(streamBufferRef.current);
+                if (thinking && thinking !== streamThinkingRef.current) {
+                  streamThinkingRef.current = thinking;
+                }
+                setMessages(prev => prev.map(m =>
+                  m.id === asstMsgId ? { ...m, content: cleanText, thinking: streamThinkingRef.current } : m
+                ));
               }
             }
           } else if (eventName === 'source') {
@@ -336,7 +308,6 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
         controller.signal
       );
 
-      cancelAnimationFrame(rafRef.current);
       const { thinking: finalThinking, content: finalCleanContent } = parseThinkingAndContent(streamBufferRef.current);
       const activeThinking = finalThinking || streamThinkingRef.current;
       setMessages(prev => prev.map(m =>

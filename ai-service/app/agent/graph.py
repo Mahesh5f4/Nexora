@@ -94,11 +94,26 @@ _WEB_PATTERNS = [
 _MEMORY_PATTERNS = [
     r"\bmy favorite\b",
     r"\bi prefer\b",
-    r"\bmy (experience|background|resume|skills|name|job|hobby|city|company)\b",
+    r"\bmy (experience|background|resume|skills|name|job|hobby|city|company|goal|goals|interests)\b",
     r"\bremember (that|this)\b",
     r"\bmy name is\b",
     r"\bi work (at|as)\b",
     r"\bi live in\b",
+    r"\btell me about (me|myself)\b",
+    r"\bwhat do you know about me\b",
+    r"\bwhat do you remember\b",
+    r"\bwho am i\b",
+    r"\babout me\b",
+    r"\bmy profile\b",
+    r"\bwhat (is|are) my\b",
+    r"\bi am a\b",
+    r"\bi am an\b",
+    r"\bi'm a\b",
+    r"\bi'm an\b",
+    r"\bi love\b",
+    r"\bi like\b",
+    r"\bi use\b",
+    r"\bknow about me\b",
 ]
 
 _CODE_PATTERNS = [

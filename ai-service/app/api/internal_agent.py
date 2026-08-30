@@ -162,10 +162,8 @@ async def ask_agent_stream(
             for msg in request.messages:
                 safe_messages.append(msg)
                 
-        async def event_generator():
+        def event_generator():
             try:
-                # Opt 1: reuse pre-compiled graph singleton
-                
                 initial_state = {
                     "query": request.query,
                     "user_id": request.userId,
@@ -190,7 +188,6 @@ async def ask_agent_stream(
                 final_state = None
                 # Run graph step by step to emit status events
                 for output in graph.stream(initial_state):
-                    # output is a dict like {'node_name': state}
                     for node_name, state in output.items():
                         final_state = state
                         yield f"event: status\ndata: {json.dumps({'stage': node_name})}\n\n"
@@ -204,11 +201,6 @@ async def ask_agent_stream(
                                 "needsLlm": state.get("needs_llm", True)
                             }
                             yield f"event: metadata\ndata: {json.dumps(flags)}\n\n"
-                            
-                        # If node generated evidence, we could emit it, but for simplicity we rely on status
-                        if node_name == "collect_initial_evidence" or node_name == "search_again":
-                            # optionally emit sources here, but we will emit them all at the end of graph before streaming text
-                            pass
                 
                 if final_state is None:
                     final_state = initial_state
@@ -246,11 +238,9 @@ async def ask_agent_stream(
                         url_pattern = validator.url_pattern
                         
                         aborted = False
-                        # execute_prompt_stream is a synchronous generator
                         for chunk in rag_service.llm_gateway.execute_prompt_stream(ai_req):
                             full_response += chunk
                             
-                            # Stream-safe validation: immediately detectable fabricated URLs
                             found_urls = set(url_pattern.findall(full_response))
                             fabricated = False
                             for url in found_urls:
@@ -262,13 +252,10 @@ async def ask_agent_stream(
                             if fabricated:
                                 aborted = True
                                 yield f"event: error\ndata: {json.dumps({'error': 'Fabricated source URL detected during stream.', 'status': 400})}\n\n"
-                                break # Stop the stream
+                                break
                                 
-                            parts = re.split(r'(\s+)', chunk)
-                            for part in parts:
-                                if part:
-                                    yield f"event: token\ndata: {json.dumps({'text': part})}\n\n"
-                                    await asyncio.sleep(0.01)
+                            if chunk:
+                                yield f"event: token\ndata: {json.dumps({'text': chunk})}\n\n"
                             
                         if not aborted:
                             # Final validation

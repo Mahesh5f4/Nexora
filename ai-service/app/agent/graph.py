@@ -94,12 +94,11 @@ _WEB_PATTERNS = [
 _MEMORY_PATTERNS = [
     r"\bmy favorite\b",
     r"\bi prefer\b",
-    r"\bmy (experience|background|resume|skills)\b",
-    r"\bfor me\b",
-    r"\bbeside my\b",
-    r"\bbecause i\b",
-    r"\bwhat did i\b",
-    r"\bremember\b",
+    r"\bmy (experience|background|resume|skills|name|job|hobby|city|company)\b",
+    r"\bremember (that|this)\b",
+    r"\bmy name is\b",
+    r"\bi work (at|as)\b",
+    r"\bi live in\b",
 ]
 
 _CODE_PATTERNS = [
@@ -253,7 +252,7 @@ class AgentGraph:
         # 1. Base intent from query patterns
         has_rag_intent = _matches_any(query_lower, _RAG_PATTERNS)
         has_web_intent = _matches_any(query_lower, _WEB_PATTERNS)
-        has_mem_intent = _matches_any(query_lower, _MEMORY_PATTERNS) or re.search(r'\b(i|my|me)\b', query_lower)
+        has_mem_intent = _matches_any(query_lower, _MEMORY_PATTERNS)
         has_code_intent = _matches_any(query_lower, _CODE_PATTERNS)
         has_analysis_intent = _detect_analysis_intent(query_lower)
 

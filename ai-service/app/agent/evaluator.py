@@ -131,6 +131,14 @@ class EvidenceEvaluator:
                 missing_information=[]
             )
 
+        # Fast path: If evidence has meaningful content, immediately treat as SUFFICIENT
+        if any(len(ev.content or "") >= MIN_TOTAL_CONTENT_CHARS for ev in evidence):
+            return EvaluationResult(
+                status=EvaluationStatus.SUFFICIENT,
+                reason="Sufficient evidence retrieved from primary sources.",
+                missing_information=[]
+            )
+
         # Ambiguous — pass to Tier 2
         return None
 

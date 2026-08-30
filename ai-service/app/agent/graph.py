@@ -439,18 +439,47 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
             response = self.llm_gateway.execute_prompt(ai_request)
             content = response.content.strip()
             
-            # Clean markdown block if present
-            if "```json" in content:
-                content = content.split("```json")[1].split("```")[0].strip()
-            elif "```" in content:
-                content = content.split("```")[1].split("```")[0].strip()
+            # Clean thinking tags and markdown wrappers
+            cleaned = re.sub(r'<think>[\s\S]*?</think>', '', content, flags=re.IGNORECASE).strip()
+            
+            result = None
+            # 1. Direct JSON parse
+            try:
+                result = json.loads(cleaned)
+            except Exception:
+                pass
                 
-            # Attempt to extract JSON if there is extra text
-            json_match = re.search(r'\{.*\}', content, re.DOTALL)
-            if json_match:
-                content = json_match.group(0)
-                
-            result = json.loads(content)
+            # 2. Markdown json code block
+            if result is None and "```json" in cleaned:
+                try:
+                    block = cleaned.split("```json")[1].split("```")[0].strip()
+                    result = json.loads(block)
+                except Exception:
+                    pass
+                    
+            if result is None and "```" in cleaned:
+                try:
+                    block = cleaned.split("```")[1].split("```")[0].strip()
+                    result = json.loads(block)
+                except Exception:
+                    pass
+                    
+            # 3. Match explicit JSON object structure
+            if result is None:
+                json_match = re.search(r'\{\s*"extracted_fact"[\s\S]*?\}', cleaned)
+                if json_match:
+                    try:
+                        result = json.loads(json_match.group(0))
+                    except Exception:
+                        pass
+                        
+            # 4. Fallback regex to extract fact string directly
+            if result is None:
+                fact_match = re.search(r'"extracted_fact"\s*:\s*"([^"]+)"', cleaned)
+                if fact_match:
+                    result = {"extracted_fact": fact_match.group(1), "delete_ids": []}
+                else:
+                    result = {"extracted_fact": None, "delete_ids": []}
             
             fact = result.get("extracted_fact")
             delete_ids = result.get("delete_ids") or []

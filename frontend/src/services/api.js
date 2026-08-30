@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 let envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
-if (!envUrl || envUrl.includes('onrender') || envUrl.includes('56-228-22-98') || envUrl.includes('nip.io')) {
-  envUrl = 'http://16.192.164.81/api';
+if (!envUrl || envUrl.includes('onrender') || envUrl.includes('56-228-22-98') || envUrl.startsWith('http:')) {
+  envUrl = 'https://16-192-164-81.nip.io/api';
 }
 export const API_BASE_URL = envUrl;
 

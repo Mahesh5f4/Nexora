@@ -58,15 +58,14 @@ class LLMGateway:
             "max_retries": 0
         }
 
-        # Fast free models on OpenRouter — llama-3.1-8b is typically 1-3s latency
-        primary_llm = ChatOpenAI(model="meta-llama/llama-3.1-8b-instruct:free", **base_params)
-        fallback_1 = ChatOpenAI(model="meta-llama/llama-3.2-3b-instruct:free", **base_params)
-        fallback_2 = ChatOpenAI(model="microsoft/phi-3-mini-128k-instruct:free", **base_params)
-        fallback_3 = ChatOpenAI(model="google/gemma-3-1b-it:free", **base_params)
-        fallback_4 = ChatOpenAI(model="qwen/qwen-2.5-7b-instruct:free", **base_params)
-        fallback_5 = ChatOpenAI(model="liquid/lfm-2.5-2.6b:free", **base_params)
+        # Active auto-routing free model on OpenRouter — routes to lowest latency healthy provider
+        primary_llm = ChatOpenAI(model="openrouter/free", **base_params)
+        fallback_1 = ChatOpenAI(model="google/gemma-4-31b-it:free", **base_params)
+        fallback_2 = ChatOpenAI(model="nvidia/nemotron-3.5-lightning:free", **base_params)
+        fallback_3 = ChatOpenAI(model="minimax/minimax-m2.7:free", **base_params)
+        fallback_4 = ChatOpenAI(model="liquid/lfm-2.5-2.6b:free", **base_params)
 
-        self.llm = primary_llm.with_fallbacks([fallback_1, fallback_2, fallback_3, fallback_4, fallback_5])
+        self.llm = primary_llm.with_fallbacks([fallback_1, fallback_2, fallback_3, fallback_4])
 
     def _build_messages(self, request: AiExecuteRequest):
         messages = []

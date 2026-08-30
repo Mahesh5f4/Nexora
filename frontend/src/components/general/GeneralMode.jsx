@@ -36,10 +36,19 @@ const markdownComponents = {
   },
   table({ node, children, ...props }) {
     return (
-      <div className="w-full overflow-x-auto my-4 rounded-lg border border-white/10">
-        <table className="w-full text-sm text-left" {...props}>{children}</table>
+      <div className="w-full overflow-x-auto my-4 rounded-xl border border-white/10 bg-white/[0.02]">
+        <table className="w-full text-sm text-left border-collapse" {...props}>{children}</table>
       </div>
     );
+  },
+  thead({ node, children, ...props }) {
+    return <thead className="bg-white/5 border-b border-white/10 text-white/80 font-medium" {...props}>{children}</thead>;
+  },
+  th({ node, children, ...props }) {
+    return <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-white/70" {...props}>{children}</th>;
+  },
+  td({ node, children, ...props }) {
+    return <td className="px-4 py-2.5 border-t border-white/5 text-gray-300 align-top" {...props}>{children}</td>;
   },
   a({ node, href, children, ...props }) {
     const safe = href?.startsWith('javascript:') ? '#' : href;

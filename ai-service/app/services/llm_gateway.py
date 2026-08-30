@@ -144,7 +144,7 @@ class LLMGateway:
         messages = self._build_messages(request)
         llm_with_args = self.llm.bind(
             temperature=request.temperature or 0.2,
-            max_tokens=request.maxTokens or 1000
+            max_tokens=request.maxTokens or 4096
         )
         logger.info("Executing prompt via Python LangChain Gateway...")
         response = llm_with_args.invoke(messages)
@@ -181,7 +181,7 @@ class LLMGateway:
         messages = self._build_messages(request)
         llm_with_args = self.llm.bind(
             temperature=request.temperature or 0.2,
-            max_tokens=request.maxTokens or 1000
+            max_tokens=request.maxTokens or 4096
         )
         logger.info("Streaming prompt via Python LangChain Gateway...")
         

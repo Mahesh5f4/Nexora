@@ -10,22 +10,55 @@ export function cleanResponseText(text) {
 
 export function parseThinkingAndContent(text) {
   if (!text) return { thinking: '', content: '' };
-  
+
   let thinking = '';
   let content = text;
-  
-  // Extract <think>...</think>
-  const thinkMatch = text.match(/<think>([\s\S]*?)<\/think>/i);
-  if (thinkMatch) {
-    thinking = thinkMatch[1].trim();
-    content = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trimStart();
+
+  // Case 1: Unclosed <think> tag during active stream
+  if (/^<think>/i.test(content) && !/<\/think>/i.test(content)) {
+    thinking = content.replace(/^<think>/i, '').trim();
+    return { thinking, content: '' };
   }
-  
-  // Extract 'Here's a thinking process:' or 'Analyze User Input:' blocks
-  const proseThinkMatch = content.match(/^((?:Here'?s a thinking process:|Analyze User Input:|Thinking Process:|Draft Content \(mental\):)[\s\S]*?)(?=\n\n(?:[A-Z0-9#\*]|Hello|Hi|Sure|To |In |The |Based |According |\Z))/i);
-  if (proseThinkMatch) {
-    thinking = (thinking ? thinking + '\n\n' : '') + proseThinkMatch[1].trim();
-    content = content.substring(proseThinkMatch[0].length).trimStart();
+
+  // Case 2: Closed <think>...</think> tag(s)
+  if (/<think>[\s\S]*?<\/think>/i.test(content)) {
+    const matches = Array.from(content.matchAll(/<think>([\s\S]*?)<\/think>/gi));
+    thinking = matches.map(m => m[1].trim()).filter(Boolean).join('\n\n');
+    content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trimStart();
+  }
+
+  // Case 3: Prose thinking block (e.g. "Here's a thinking process:", "Analyze User Input:", etc.)
+  if (/^(?:Here'?s a thinking process|Thinking Process|Analyze User Input|Draft Content \(mental\))/i.test(content)) {
+    const draftMatch = content.match(/\n(?:Draft|Final Response|Response):\s*["']?([\s\S]*)$/i);
+    if (draftMatch) {
+      const thinkPart = content.substring(0, draftMatch.index).trim();
+      thinking = (thinking ? thinking + '\n\n' : '') + thinkPart;
+      content = draftMatch[1].replace(/["']$/, '').trim();
+    } else {
+      const paragraphs = content.split('\n\n');
+      const thinkBlocks = [];
+      const contentBlocks = [];
+      let inThinking = true;
+
+      for (const p of paragraphs) {
+        const trimmed = p.trim();
+        const isThinkHeader = /^(?:Here'?s a thinking process|Thinking Process|Analyze|Identify|Determine|Consider|Check|Structure|Draft -|Step \d+:|Key Elements:)[^\n]*:/i.test(trimmed);
+        
+        if (inThinking && isThinkHeader) {
+          thinkBlocks.push(trimmed);
+        } else if (inThinking && thinkBlocks.length > 0 && /^(?:User says|Context:|Need to|Should |Start:|Bridge:|Roadmap|Ask |Keep |Check constraints:)/i.test(trimmed)) {
+          thinkBlocks.push(trimmed);
+        } else {
+          inThinking = false;
+          contentBlocks.push(p);
+        }
+      }
+
+      if (thinkBlocks.length > 0) {
+        thinking = (thinking ? thinking + '\n\n' : '') + thinkBlocks.join('\n\n');
+        content = contentBlocks.join('\n\n').trimStart();
+      }
+    }
   }
 
   // Strip Chinese boilerplate if any

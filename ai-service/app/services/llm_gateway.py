@@ -38,18 +38,42 @@ def is_thinking_header(text: str) -> bool:
     return any(re.search(p, t, re.IGNORECASE) for p in THINKING_PATTERNS)
 
 def clean_reasoning_output(text: str) -> str:
-    """Strips out <think>...</think> and 'Here\\'s a thinking process:' blocks if leaked by reasoning models."""
+    """Strips out <think>...</think> and multi-paragraph 'Here\\'s a thinking process:' scratchpads."""
     if not text:
         return text
-    # Strip <think>...</think> tags
-    cleaned = re.sub(r'<think>[\s\S]*?</think>', '', text, flags=re.IGNORECASE)
-    # Strip 'Here's a thinking process: ...' blocks
-    cleaned = re.sub(r"^Here'?s a thinking process:[\s\S]*?(?=\n\n(?:[A-Z0-9#\*]|Hello|Hi|Sure|To |In |The |Based |According |\Z))", "", cleaned, flags=re.IGNORECASE)
-    # Strip 'Analyze User Input: ...' blocks
-    cleaned = re.sub(r"^Analyze User Input:[\s\S]*?(?=\n\n(?:[A-Z0-9#\*]|Hello|Hi|Sure|To |In |The |Based |According |\Z))", "", cleaned, flags=re.IGNORECASE)
-    # Strip Chinese boilerplate
-    cleaned = re.sub(r"我是一个有帮助的[\s\S]*?(?=\n\n|\Z)", "", cleaned)
-    return cleaned.strip()
+
+    content = text.strip()
+
+    # 1. Strip <think>...</think> tags
+    content = re.sub(r'<think>[\s\S]*?</think>', '', content, flags=re.IGNORECASE).strip()
+
+    # 2. Handle prose thinking blocks starting with 'Here's a thinking process' or 'Analyze User Input'
+    if re.match(r'^(?:Here\'?s a thinking process|Thinking Process|Analyze User Input|Draft Content \(mental\))', content, re.IGNORECASE):
+        # Look for explicit Draft: or Response: transition
+        draft_m = re.search(r'\n(?:Draft|Final Response|Response):\s*["\']?([\s\S]*)$', content, re.IGNORECASE)
+        if draft_m:
+            content = draft_m.group(1).rstrip("\"'").strip()
+        else:
+            paragraphs = content.split('\n\n')
+            content_blocks = []
+            in_thinking = True
+            for p in paragraphs:
+                trimmed = p.strip()
+                is_think_header = bool(re.match(r'^(?:Here\'?s a thinking process|Thinking Process|Analyze|Identify|Determine|Consider|Check|Structure|Draft -|Step \d+:|Key Elements:)[^\n]*:', trimmed, re.IGNORECASE))
+                if in_thinking and is_think_header:
+                    continue
+                elif in_thinking and bool(re.match(r'^(?:User says|Context:|Need to|Should |Start:|Bridge:|Roadmap|Ask |Keep |Check constraints:)', trimmed, re.IGNORECASE)):
+                    continue
+                else:
+                    in_thinking = False
+                    content_blocks.append(p)
+            if content_blocks:
+                content = '\n\n'.join(content_blocks).strip()
+
+    # 3. Strip Chinese boilerplate if any
+    content = re.sub(r"我是一个有帮助的[\s\S]*?(?=\n\n|\Z)", "", content).strip()
+
+    return content
 
 
 

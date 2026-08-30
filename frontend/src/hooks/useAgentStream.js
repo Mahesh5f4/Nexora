@@ -171,6 +171,7 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
     // ─── LIVE BACKEND API STREAMING (IS_PREVIEW_MODE = false) ─────────────────
     const controller = new AbortController();
     abortControllerRef.current = controller;
+    const wasNewConversation = !convId;
 
     try {
       if (!convId) {

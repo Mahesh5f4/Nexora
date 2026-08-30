@@ -381,8 +381,8 @@ class AgentGraph:
             logger.error(f"Failed to list user memories: {e}")
             state["user_memories"] = []
             
-        # 2. Fast check for LLM extraction: only extract if user uses words like "I", "my", "me"
-        if not re.search(r'\b(i|my|me)\b', query.lower()):
+        # 2. Fast check for LLM extraction: only extract if explicit memory intent was detected
+        if not state.get("needs_memory"):
             state["memory_status"] = "SKIPPED"
             return state
             

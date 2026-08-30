@@ -141,17 +141,15 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
   const handleSend = useCallback(async (content, options = {}) => {
     if (!content.trim() || isLoadingRef.current) return;
 
-    let convId = activeConversation?.id;
+    let convId = activeConversation?.id || currentConvIdRef.current;
     const userMsgId = `user-${Date.now()}`;
     const asstMsgId = `asst-${Date.now()}`;
 
-    const newMessages = [
-      ...messages,
+    setMessages(prev => [
+      ...prev.map(m => m.streaming ? { ...m, streaming: false } : m),
       { id: userMsgId, sender: 'USER', content: content.trim(), createdAt: new Date().toISOString() },
       { id: asstMsgId, sender: 'ASSISTANT', content: '', thinking: '', streaming: true, sources: [], metadata: null }
-    ];
-
-    setMessages(newMessages);
+    ]);
     setIsLoading(true);
     isLoadingRef.current = true;
     setError(null);

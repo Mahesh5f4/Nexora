@@ -58,12 +58,12 @@ class LLMGateway:
             "max_retries": 0
         }
 
-        # Active free models on OpenRouter - optimized with nemotron as primary (healthy upstream)
-        primary_llm = ChatOpenAI(model="nvidia/nemotron-3.5-lightning:free", **base_params)
-        fallback_1 = ChatOpenAI(model="google/gemma-4-31b-it:free", **base_params)
-        fallback_2 = ChatOpenAI(model="google/gemma-4-26b-a4b-it:free", **base_params)
-        fallback_3 = ChatOpenAI(model="nvidia/nemotron-3-super-120b-a12b:free", **base_params)
-        fallback_4 = ChatOpenAI(model="z-ai/glm-5.2:free", **base_params)
+        # Fast free models on OpenRouter — llama-3.1-8b is typically 1-3s latency
+        primary_llm = ChatOpenAI(model="meta-llama/llama-3.1-8b-instruct:free", **base_params)
+        fallback_1 = ChatOpenAI(model="meta-llama/llama-3.2-3b-instruct:free", **base_params)
+        fallback_2 = ChatOpenAI(model="microsoft/phi-3-mini-128k-instruct:free", **base_params)
+        fallback_3 = ChatOpenAI(model="google/gemma-3-1b-it:free", **base_params)
+        fallback_4 = ChatOpenAI(model="qwen/qwen-2.5-7b-instruct:free", **base_params)
         fallback_5 = ChatOpenAI(model="liquid/lfm-2.5-2.6b:free", **base_params)
 
         self.llm = primary_llm.with_fallbacks([fallback_1, fallback_2, fallback_3, fallback_4, fallback_5])

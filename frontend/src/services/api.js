@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 let envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
-if (!envUrl || envUrl.includes('nip.io') || envUrl.includes('56-228-22-98') || envUrl === '/api') {
-  envUrl = 'https://thinkaction-backend.onrender.com/api';
+if (!envUrl || envUrl.includes('onrender')) {
+  envUrl = 'https://16-192-164-81.nip.io/api';
 }
 export const API_BASE_URL = envUrl;
 

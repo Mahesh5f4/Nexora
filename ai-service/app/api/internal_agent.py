@@ -293,11 +293,8 @@ async def ask_agent_stream(
                     else:
                         try:
                             for chunk in rag_service.llm_gateway.execute_prompt_stream(ai_req):
-                                parts = re.split(r'(\s+)', chunk)
-                                for part in parts:
-                                    if part:
-                                        yield f"event: token\ndata: {json.dumps({'text': part})}\n\n"
-                                        await asyncio.sleep(0.01)
+                                if chunk:
+                                    yield f"event: token\ndata: {json.dumps({'text': chunk})}\n\n"
                         except Exception as gen_err:
                             logger.error(f"LLM generation stream failed: {gen_err}")
                             # Fallback: show sources found with a helpful message

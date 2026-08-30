@@ -18,8 +18,21 @@ async def lifespan(app: FastAPI):
     try:
         get_embedding_service()
         get_semantic_cache()
-        get_rag_service()
+        rag_svc = get_rag_service()
         get_compiled_graph()
+        
+        # Seed product identity in SYSTEM partition
+        try:
+            rag_svc.index_chunks(
+                document_id="thinkaction_identity",
+                user_id="SYSTEM",
+                text="ThinkAction AI is an advanced agentic AI workspace created and founded by Mahesh.",
+                metadata={"filename": "ThinkAction AI Product Identity", "content_type": "text/plain"}
+            )
+            logger.info("✅ Seeded product identity into SYSTEM partition.")
+        except Exception as seed_err:
+            logger.warning(f"Product identity seed warning: {seed_err}")
+
         logger.info("✅ All AI models and LangGraph singletons pre-warmed successfully!")
     except Exception as e:
         logger.error(f"⚠️ Error during startup pre-warming: {e}")

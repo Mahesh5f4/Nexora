@@ -81,6 +81,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, ex.getStatusCode());
     }
 
+    @ExceptionHandler(org.springframework.web.context.request.async.AsyncRequestTimeoutException.class)
+    public ResponseEntity<Void> handleAsyncRequestTimeoutException(org.springframework.web.context.request.async.AsyncRequestTimeoutException ex) {
+        String traceId = MDC.get("traceId");
+        logger.debug("[{}] Async SSE request completed or timed out gracefully", traceId);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
         String traceId = MDC.get("traceId");

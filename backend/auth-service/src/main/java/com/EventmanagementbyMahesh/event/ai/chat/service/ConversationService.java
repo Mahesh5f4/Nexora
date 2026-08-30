@@ -191,7 +191,9 @@ public class ConversationService {
         agentRequest.setDocumentId(request.getDocumentId());
         agentRequest.setMode(request.getMode());
 
-        SseEmitter emitter = new SseEmitter(120000L);
+        SseEmitter emitter = new SseEmitter(1800000L); // 30 minutes timeout
+        emitter.onTimeout(emitter::complete);
+        emitter.onError(t -> emitter.complete());
         StringBuilder fullAnswer = new StringBuilder();
 
         // Capture request attributes to propagate to the new thread

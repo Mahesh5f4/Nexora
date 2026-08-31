@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion } from 'framer-motion';
-import { Database, User, RefreshCw, Plus, Check, Copy, Globe, ChevronDown, Upload, Book, FileText, List, Search } from 'lucide-react';
+import { Database, User, RefreshCw, Plus, Check, Copy, Globe, ChevronDown, Upload, Book, FileText, List, Search, Menu } from 'lucide-react';
 import { useAgentStream } from '../../hooks/useAgentStream';
 import CodeBlock from '../chat/CodeBlock';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
-import ThinkingAccordion from '../chat/ThinkingAccordion';
+import ReasoningActivityPanel from '../chat/ReasoningActivityPanel';
 import { documentService } from '../../services/api';
 import { copyToClipboard } from '../../utils/clipboard';
 
@@ -77,7 +77,14 @@ const MessageBubble = React.memo(({ msg }) => {
       
       <div className={`flex-1 overflow-hidden ${isUser ? 'flex flex-col items-end' : ''}`}>
         {!isUser && msg.metadata && <SourceRoutingTags flags={msg.metadata} />}
-        {!isUser && msg.thinking && <ThinkingAccordion thinking={msg.thinking} isStreaming={msg.streaming && !msg.content} />}
+        {!isUser && (
+          <ReasoningActivityPanel 
+            activities={msg.activities} 
+            thinking={msg.thinking} 
+            isStreaming={Boolean(msg.streaming)} 
+            hasContent={Boolean(msg.content)}
+          />
+        )}
         
         <div className={`px-5 py-4 ${
           isUser 
@@ -86,11 +93,6 @@ const MessageBubble = React.memo(({ msg }) => {
         }`}>
           {isUser ? (
             <p className="whitespace-pre-wrap">{msg.content}</p>
-          ) : msg.streaming && !msg.content ? (
-            <div className="flex items-center gap-2 text-white/30">
-              <RefreshCw size={13} className="animate-spin" />
-              <span>Thinking…</span>
-            </div>
           ) : (
             <div className="prose prose-invert prose-sm max-w-none
               prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent
@@ -128,11 +130,13 @@ const MessageBubble = React.memo(({ msg }) => {
     prevProps.msg.id === nextProps.msg.id &&
     prevProps.msg.content === nextProps.msg.content &&
     prevProps.msg.streaming === nextProps.msg.streaming &&
+    prevProps.msg.thinking === nextProps.msg.thinking &&
+    prevProps.msg.activities?.length === nextProps.msg.activities?.length &&
     prevProps.msg.sources?.length === nextProps.msg.sources?.length
   );
 });
 
-const KnowledgeMode = ({ activeConversation, setActiveConversation, fetchConversations, onConversationCreated }) => {
+const KnowledgeMode = ({ activeConversation, setActiveConversation, fetchConversations, onConversationCreated, onOpenSidebar }) => {
   const {
     messages, isLoading, error,
     handleSend, handleStop, handleNewChat, syncConversation
@@ -142,25 +146,27 @@ const KnowledgeMode = ({ activeConversation, setActiveConversation, fetchConvers
   const [documents, setDocuments] = useState([]);
   const [selectedDocId, setSelectedDocId] = useState('');
   const [uploading, setUploading] = useState(false);
-  const textareaRef = useRef(null);
-  const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const fetchDocs = () => {
-    documentService.getDocuments().then(res => {
+  const textareaRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
+
+  const fetchDocuments = async () => {
+    try {
+      const res = await documentService.getDocuments();
       const docs = res.data || [];
       setDocuments(docs);
       if (docs.length > 0 && !selectedDocId) {
         setSelectedDocId(docs[0].id);
       }
-    }).catch(err => {
-      console.error(err);
-    });
+    } catch (err) {
+      console.error('Failed to fetch documents:', err);
+    }
   };
-
-  useEffect(() => {
-    fetchDocs();
-  }, []);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -170,14 +176,12 @@ const KnowledgeMode = ({ activeConversation, setActiveConversation, fetchConvers
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
     try {
-      const res = await documentService.uploadDocument(file);
-      await fetchDocs();
-      setSelectedDocId(res.data.id);
+      setUploading(true);
+      await documentService.uploadDocument(file);
+      await fetchDocuments();
     } catch (err) {
-      console.error("Upload failed:", err);
-      alert("Failed to upload document.");
+      console.error('Upload failed:', err);
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -199,7 +203,6 @@ const KnowledgeMode = ({ activeConversation, setActiveConversation, fetchConvers
     const text = content || input;
     if (!text.trim() || isLoading) return;
     
-    // Pass forceRag=true and documentId
     handleSend(text.trim(), {
       forceRag: true,
       documentId: selectedDocId
@@ -207,20 +210,22 @@ const KnowledgeMode = ({ activeConversation, setActiveConversation, fetchConvers
     setInput('');
   };
 
-  const STARTERS = [
-    'What is the main topic of this document?',
-    'Summarize the key points mentioned.',
-    'What are the specific action items?',
-    'Explain the conclusion of this document.',
-  ];
-
   return (
     <div className="flex flex-col h-full bg-[#021008] text-white font-sans relative">
       {/* Top bar */}
-      <header className="h-14 shrink-0 border-b border-emerald-500/10 flex items-center justify-between px-4 sm:px-6 bg-[#021008]/70 backdrop-blur-xl z-30 sticky top-0">
-        <div className="flex items-center gap-2">
-          <Database size={16} className="text-emerald-400" />
-          <span className="text-xs font-bold text-emerald-400/80 tracking-widest uppercase">Knowledge Base</span>
+      <header className="h-14 shrink-0 border-b border-emerald-500/10 flex items-center justify-between px-3 sm:px-6 bg-[#021008]/80 backdrop-blur-xl z-30 sticky top-0">
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={onOpenSidebar}
+            className="md:hidden p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
+            aria-label="Open sidebar menu"
+          >
+            <Menu size={18} />
+          </button>
+          <div className="flex items-center gap-2">
+            <Database size={16} className="text-emerald-400" />
+            <span className="text-xs sm:text-sm font-semibold text-emerald-200 tracking-wide">Knowledge Base</span>
+          </div>
         </div>
         <div className="flex items-center gap-2 relative">
           <input
@@ -233,14 +238,14 @@ const KnowledgeMode = ({ activeConversation, setActiveConversation, fetchConvers
           <button
             onClick={handleUploadClick}
             disabled={uploading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/30 text-emerald-400 transition-all mr-1"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 transition-all cursor-pointer"
           >
             {uploading ? <RefreshCw size={12} className="animate-spin" /> : <Upload size={12} />}
             <span className="hidden sm:inline">{uploading ? 'Uploading...' : 'Upload'}</span>
           </button>
           
           <select 
-            className="bg-[#111] border border-white/10 text-white/80 rounded-lg px-3 py-1.5 text-[11px] outline-none focus:border-emerald-500/50 appearance-none pr-8 cursor-pointer relative max-w-[150px] sm:max-w-[200px]"
+            className="bg-[#111] border border-white/10 text-white/80 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-emerald-500/50 appearance-none pr-6 cursor-pointer relative max-w-[120px] sm:max-w-[180px]"
             value={selectedDocId}
             onChange={(e) => setSelectedDocId(e.target.value)}
           >
@@ -249,24 +254,19 @@ const KnowledgeMode = ({ activeConversation, setActiveConversation, fetchConvers
               <option key={doc.id} value={doc.id} className="bg-[#222] text-white">{doc.filename}</option>
             ))}
           </select>
-          <ChevronDown size={12} className="absolute right-[90px] sm:right-[100px] text-white/50 pointer-events-none hidden md:block" />
 
-          {isLoading && (
-            <span className="flex items-center gap-1.5 text-[11px] text-white/40 ml-2">
-              <RefreshCw size={12} className="animate-spin" /> Generating…
-            </span>
-          )}
           <button
             onClick={handleNewChat}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-emerald-500/20 text-white/40 hover:text-white/80 transition-all ml-2"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer"
           >
-            <Plus size={11} /> New Chat
+            <Plus size={13} />
+            <span className="hidden sm:inline">New Chat</span>
           </button>
         </div>
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-12 py-6 relative">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-6 pb-36 sm:pb-40 relative">
         {messages.length === 0 ? (
           <div className="min-h-full flex flex-col items-center max-w-4xl mx-auto px-4 w-full pt-10 pb-32 sm:pb-36">
             <div className="flex-1" />

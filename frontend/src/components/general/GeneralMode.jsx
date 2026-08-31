@@ -2,12 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BrainCircuit, User, Plus, Check, Copy, Globe, Mail, Code, Lightbulb, FileText, ArrowRight } from 'lucide-react';
+import { BrainCircuit, User, Plus, Check, Copy, Globe, Mail, Code, Lightbulb, FileText, ArrowRight, Menu } from 'lucide-react';
 import { useAgentStream } from '../../hooks/useAgentStream';
 import CodeBlock from '../chat/CodeBlock';
 import AgentInput from '../chat/AgentInput';
+import ReasoningActivityPanel from '../chat/ReasoningActivityPanel';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
-import ThinkingAccordion from '../chat/ThinkingAccordion';
 import { copyToClipboard } from '../../utils/clipboard';
 
 /**
@@ -93,7 +93,14 @@ const MessageBubble = React.memo(({ msg }) => {
       
       <div className={`flex-1 overflow-hidden ${isUser ? 'flex flex-col items-end' : ''}`}>
         {!isUser && msg.metadata && <SourceRoutingTags flags={msg.metadata} />}
-        {!isUser && msg.thinking && <ThinkingAccordion thinking={msg.thinking} isStreaming={msg.streaming && !msg.content} />}
+        {!isUser && (
+          <ReasoningActivityPanel 
+            activities={msg.activities} 
+            thinking={msg.thinking} 
+            isStreaming={Boolean(msg.streaming)} 
+            hasContent={Boolean(msg.content)}
+          />
+        )}
         
         <div className={`px-4 py-3 ${
           isUser 
@@ -103,12 +110,6 @@ const MessageBubble = React.memo(({ msg }) => {
         }`}>
           {isUser ? (
             <p className="whitespace-pre-wrap text-[14px] leading-[1.6]">{msg.content}</p>
-          ) : msg.streaming && !msg.content ? (
-            /* §9 Source retrieval status bar — pulsing dot, NOT a spinner */
-            <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
-              <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-pulse" />
-              Thinking…
-            </div>
           ) : (
             /* §15: aria-live="polite" on streaming text */
             <div className="prose prose-invert prose-sm max-w-none
@@ -152,11 +153,13 @@ const MessageBubble = React.memo(({ msg }) => {
     prevProps.msg.id === nextProps.msg.id &&
     prevProps.msg.content === nextProps.msg.content &&
     prevProps.msg.streaming === nextProps.msg.streaming &&
+    prevProps.msg.thinking === nextProps.msg.thinking &&
+    prevProps.msg.activities?.length === nextProps.msg.activities?.length &&
     prevProps.msg.sources?.length === nextProps.msg.sources?.length
   );
 });
 
-const GeneralMode = ({ activeConversation, setActiveConversation, fetchConversations, onConversationCreated }) => {
+const GeneralMode = ({ activeConversation, setActiveConversation, fetchConversations, onConversationCreated, onOpenSidebar }) => {
   const {
     messages, isLoading, error,
     handleSend, handleStop, handleNewChat, syncConversation
@@ -183,34 +186,42 @@ const GeneralMode = ({ activeConversation, setActiveConversation, fetchConversat
   };
 
   return (
-    /* §15: Background #0A0A0B */
     <div className="flex flex-col h-full bg-[#0A0A0B] text-white font-sans relative">
       {/* Top bar */}
-      <header className="h-14 shrink-0 border-b border-white/5 flex items-center justify-between px-4 sm:px-6 bg-[#0A0A0B]/70 backdrop-blur-xl z-30 sticky top-0">
-        <div className="flex items-center gap-2">
-          <BrainCircuit size={16} className="text-blue-400" />
-          <span className="text-sm font-semibold text-gray-400 tracking-wide">GENERAL</span>
+      <header className="h-14 shrink-0 border-b border-white/5 flex items-center justify-between px-3 sm:px-6 bg-[#0A0A0B]/80 backdrop-blur-xl z-30 sticky top-0">
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={onOpenSidebar}
+            className="md:hidden p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
+            aria-label="Open sidebar menu"
+          >
+            <Menu size={18} />
+          </button>
+          <div className="flex items-center gap-2">
+            <BrainCircuit size={16} className="text-blue-400" />
+            <span className="text-xs sm:text-sm font-semibold text-zinc-300 tracking-wide">General</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {isLoading && (
-            /* §9 Status bar: pulsing dot, not a spinner */
-            <span className="flex items-center gap-1.5 text-xs text-gray-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-pulse" />
-              Generating…
+            <span className="flex items-center gap-1.5 text-xs text-blue-400/80">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+              <span className="hidden sm:inline">Generating…</span>
             </span>
           )}
           <button
             onClick={handleNewChat}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 text-gray-400 hover:text-white transition-all"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer"
             aria-label="Start new chat"
           >
-            <Plus size={12} /> New Chat
+            <Plus size={13} />
+            <span className="hidden sm:inline">New Chat</span>
           </button>
         </div>
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-12 py-6 relative">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-6 pb-36 sm:pb-40 relative">
         {messages.length === 0 ? (
           <div className="min-h-full flex flex-col items-center max-w-4xl mx-auto px-4 w-full pt-10 pb-32 sm:pb-36">
             <div className="flex-1" />

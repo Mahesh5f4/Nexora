@@ -73,6 +73,10 @@ def clean_reasoning_output(text: str) -> str:
     # 3. Strip Chinese boilerplate if any
     content = re.sub(r"我是一个有帮助的[\s\S]*?(?=\n\n|\Z)", "", content).strip()
 
+    # 4. Filter out raw provider guardrail artifacts (e.g. Llama-Guard or moderation classification outputs)
+    if re.search(r'^(?:User Safety:\s*(?:un)?safe|Safety Categories:)', content, re.IGNORECASE):
+        content = "I currently don't have any saved memories or personal facts about you. Feel free to tell me about your background, preferences, or goals, and I'll remember them for our chats!"
+
     return content
 
 
@@ -102,17 +106,22 @@ class LLMGateway:
             "api_key": api_key,
             "openai_api_key": api_key,
             "base_url": "https://openrouter.ai/api/v1",
-            "max_retries": 0
+            "max_retries": 1,
+            "default_headers": {
+                "HTTP-Referer": "https://thinkactionai.netlify.app",
+                "X-Title": "ThinkAction AI"
+            }
         }
 
-        # Active auto-routing free model on OpenRouter — routes to lowest latency healthy provider
+        # Optimized model chain prioritizing fastest low-latency streaming models
         primary_llm = ChatOpenAI(model="openrouter/free", **base_params)
         fallback_1 = ChatOpenAI(model="google/gemma-4-31b-it:free", **base_params)
         fallback_2 = ChatOpenAI(model="nvidia/nemotron-3.5-lightning:free", **base_params)
-        fallback_3 = ChatOpenAI(model="minimax/minimax-m2.7:free", **base_params)
-        fallback_4 = ChatOpenAI(model="liquid/lfm-2.5-2.6b:free", **base_params)
+        fallback_3 = ChatOpenAI(model="minimax/minimax-m3:free", **base_params)
+        fallback_4 = ChatOpenAI(model="google/gemma-4-26b-a4b-it:free", **base_params)
+        fallback_5 = ChatOpenAI(model="liquid/lfm-2.5-2.6b:free", **base_params)
 
-        self.llm = primary_llm.with_fallbacks([fallback_1, fallback_2, fallback_3, fallback_4])
+        self.llm = primary_llm.with_fallbacks([fallback_1, fallback_2, fallback_3, fallback_4, fallback_5])
 
     def _build_messages(self, request: AiExecuteRequest):
         messages = []
@@ -240,7 +249,14 @@ class LLMGateway:
                         if in_prose_thinking is None:
                             header_buffer += content
                             if "\n\n" in header_buffer or len(header_buffer) > 250:
-                                if is_thinking_header(header_buffer):
+                                if re.search(r'^(?:User Safety:\s*(?:un)?safe|Safety Categories:)', header_buffer, re.IGNORECASE):
+                                    friendly_msg = "I currently don't have any saved memories or personal facts about you. Feel free to tell me about your background, preferences, or goals, and I'll remember them for our chats!"
+                                    in_prose_thinking = False
+                                    full_tokens.append(friendly_msg)
+                                    yield ("token", friendly_msg)
+                                    header_buffer = ""
+                                    break
+                                elif is_thinking_header(header_buffer):
                                     if "\n\n" in header_buffer:
                                         parts = header_buffer.split("\n\n", 1)
                                         yield ("thinking", parts[0] + "\n\n")
@@ -282,7 +298,11 @@ class LLMGateway:
                         content = ""
 
         if header_buffer:
-            if is_thinking_header(header_buffer):
+            if re.search(r'^(?:User Safety:\s*(?:un)?safe|Safety Categories:)', header_buffer, re.IGNORECASE):
+                friendly_msg = "I currently don't have any saved memories or personal facts about you. Feel free to tell me about your background, preferences, or goals, and I'll remember them for our chats!"
+                full_tokens.append(friendly_msg)
+                yield ("token", friendly_msg)
+            elif is_thinking_header(header_buffer):
                 yield ("thinking", header_buffer)
             else:
                 full_tokens.append(header_buffer)

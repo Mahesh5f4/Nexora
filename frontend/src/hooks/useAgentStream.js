@@ -148,7 +148,7 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
     setMessages(prev => [
       ...prev.map(m => m.streaming ? { ...m, streaming: false } : m),
       { id: userMsgId, sender: 'USER', content: content.trim(), createdAt: new Date().toISOString() },
-      { id: asstMsgId, sender: 'ASSISTANT', content: '', thinking: '', streaming: true, sources: [], metadata: null }
+      { id: asstMsgId, sender: 'ASSISTANT', content: '', thinking: '', activities: [], streaming: true, sources: [], metadata: null }
     ]);
     setIsLoading(true);
     isLoadingRef.current = true;
@@ -236,7 +236,28 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
           documentId: options.documentId
         },
         (eventName, dataStr) => {
-          if (eventName === 'thinking') {
+          if (eventName === 'activity') {
+            try {
+              const actNode = JSON.parse(dataStr);
+              if (actNode && actNode.stage) {
+                setMessages(prev => prev.map(m => {
+                  if (m.id !== asstMsgId) return m;
+                  const currentActivities = m.activities || [];
+                  const existingIndex = currentActivities.findIndex(
+                    a => (actNode.id && a.id === actNode.id) || (a.stage === actNode.stage && a.status === 'running')
+                  );
+                  let updatedActivities;
+                  if (existingIndex >= 0) {
+                    updatedActivities = [...currentActivities];
+                    updatedActivities[existingIndex] = { ...updatedActivities[existingIndex], ...actNode };
+                  } else {
+                    updatedActivities = [...currentActivities, actNode];
+                  }
+                  return { ...m, activities: updatedActivities };
+                }));
+              }
+            } catch { /* ignore */ }
+          } else if (eventName === 'thinking') {
             try {
               const node = JSON.parse(dataStr);
               const chunk = node.content || node.text || node.token || '';
@@ -281,6 +302,8 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
           } else if (eventName === 'source') {
             try {
               const src = JSON.parse(dataStr);
+              if (!src || src.source_type === 'user_memory') return;
+              if (src.title && src.title.toLowerCase().includes('user profile memory')) return;
               if (src.url && (src.url.includes('localhost') || src.url.includes('127.0.0.1'))) return;
               setActiveSources(prev => [...prev, src]);
               setMessages(prev => prev.map(m =>
@@ -298,6 +321,11 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
             try {
               const errData = JSON.parse(dataStr);
               setError(errData.error || 'Stream error from server.');
+              setMessages(prev => prev.map(m => {
+                if (m.id !== asstMsgId) return m;
+                const acts = (m.activities || []).map(a => a.status === 'running' ? { ...a, status: 'failed' } : a);
+                return { ...m, activities: acts };
+              }));
             } catch {
               setError(dataStr || 'Unknown stream error.');
             }
@@ -308,26 +336,25 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
 
       const { thinking: finalThinking, content: finalCleanContent } = parseThinkingAndContent(streamBufferRef.current);
       const activeThinking = finalThinking || streamThinkingRef.current;
-      setMessages(prev => prev.map(m =>
-        m.id === asstMsgId
-          ? { ...m, streaming: false, content: finalCleanContent, thinking: activeThinking }
-          : m
-      ));
+      setMessages(prev => prev.map(m => {
+        if (m.id !== asstMsgId) return m;
+        const acts = (m.activities || []).map(a => a.status === 'running' ? { ...a, status: 'completed' } : a);
+        return { ...m, streaming: false, content: finalCleanContent, thinking: activeThinking, activities: acts };
+      }));
 
       if (wasNewConversation && fetchConversations) {
         fetchConversations();
       }
 
     } catch (err) {
-      cancelAnimationFrame(rafRef.current);
       if (err.name !== 'AbortError') {
         console.error('Stream error:', err);
         setError('AI service is temporarily unavailable. Please try again.');
-        setMessages(prev => prev.map(m =>
-          m.id === asstMsgId
-            ? { ...m, streaming: false, content: streamBufferRef.current || '*Response failed. Please retry.*' }
-            : m
-        ));
+        setMessages(prev => prev.map(m => {
+          if (m.id !== asstMsgId) return m;
+          const acts = (m.activities || []).map(a => a.status === 'running' ? { ...a, status: 'failed' } : a);
+          return { ...m, streaming: false, content: streamBufferRef.current || '*Response failed. Please retry.*', activities: acts };
+        }));
       }
     } finally {
       setIsLoading(false);
@@ -344,11 +371,15 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
       setIsLoading(false);
       isLoadingRef.current = false;
     }
-    cancelAnimationFrame(rafRef.current);
     setMessages(prev => {
       const msgs = [...prev];
       const last = msgs[msgs.length - 1];
-      if (last?.streaming) last.streaming = false;
+      if (last?.streaming) {
+        last.streaming = false;
+        if (last.activities) {
+          last.activities = last.activities.map(a => a.status === 'running' ? { ...a, status: 'cancelled' } : a);
+        }
+      }
       return msgs;
     });
   }, []);

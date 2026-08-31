@@ -38,3 +38,4 @@ class AgentState(TypedDict):
     analyze_selection_reason: Optional[str]
     analyze_evidence_types: Optional[List[str]]
     execution_metrics: Optional[dict]
+    activity_events: Optional[List[dict]]

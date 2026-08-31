@@ -1,13 +1,36 @@
 import React, { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Copy, Check } from 'lucide-react';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Copy, Check, Terminal } from 'lucide-react';
 import { copyToClipboard } from '../../utils/clipboard';
+
+// Custom Claude-inspired syntax theme overrides for crisp, readable code presentation
+const claudeTheme = {
+  ...oneDark,
+  'pre[class*="language-"]': {
+    ...oneDark['pre[class*="language-"]'],
+    background: 'transparent',
+    margin: 0,
+    padding: '1rem 1.25rem',
+    fontSize: '13px',
+    lineHeight: '1.6',
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+  },
+  'code[class*="language-"]': {
+    ...oneDark['code[class*="language-"]'],
+    background: 'transparent',
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    fontSize: '13px',
+    lineHeight: '1.6',
+  }
+};
 
 const CodeBlock = ({ inline, className, children, ...props }) => {
   const [copied, setCopied] = useState(false);
   const match = /language-(\w+)/.exec(className || '');
-  const lang = match ? match[1] : '';
+  const rawLang = match ? match[1] : '';
+  const lang = rawLang.toLowerCase();
+  
   let codeContent = String(children).replace(/\n$/, '');
   
   // Fix AI hallucinations where extra backticks are placed inside the code block
@@ -24,61 +47,76 @@ const CodeBlock = ({ inline, className, children, ...props }) => {
 
   if (inline) {
     return (
-      <code className="bg-white/10 text-gray-200 px-1.5 py-0.5 rounded text-[0.85em] font-mono break-words" {...props}>
+      <code 
+        className="bg-zinc-800/80 text-purple-200 border border-zinc-700/50 px-1.5 py-0.5 rounded-md text-[0.85em] font-mono tracking-tight select-all" 
+        {...props}
+      >
         {children}
       </code>
     );
   }
 
+  const lineCount = codeContent.split('\n').length;
+  const showLineNumbers = lineCount > 4;
+
   return (
-    /* §7 Code Researcher spec: Code blocks bg-white/5 rounded-2xl p-4 overflow-x-auto */
-    <div className="my-4 rounded-2xl overflow-hidden border border-white/10 bg-white/5 shadow-lg flex flex-col font-mono text-[13px] w-full">
-      {/* Code Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 select-none">
+    <div className="my-4 rounded-xl overflow-hidden border border-zinc-800 bg-[#0d0d10] shadow-[0_4px_24px_rgba(0,0,0,0.4)] flex flex-col font-mono text-[13px] w-full group/code">
+      {/* Claude-style Code Header Bar */}
+      <div className="flex items-center justify-between px-4 py-2 bg-[#16161a] border-b border-zinc-800/80 select-none">
         <div className="flex items-center gap-2">
-          <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50" />
-            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50" />
-          </div>
-          {lang && (
-            <span className="text-white/40 text-xs font-semibold uppercase tracking-wider ml-2">
-              {lang}
+          <span className="text-[12px] font-mono font-medium text-zinc-400 lowercase tracking-wide flex items-center gap-1.5">
+            {lang === 'bash' || lang === 'sh' || lang === 'shell' ? (
+              <Terminal size={12} className="text-zinc-500" />
+            ) : null}
+            {lang || 'code'}
+          </span>
+          {lineCount > 1 && (
+            <span className="text-[11px] text-zinc-500 font-sans">
+              · {lineCount} lines
             </span>
           )}
         </div>
         
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-zinc-200 border border-white/[0.06] transition-all text-xs cursor-pointer select-none"
           aria-label="Copy code"
         >
           {copied ? (
             <>
-              <Check size={14} className="text-emerald-400" />
-              <span className="text-xs text-emerald-400 font-medium">Copied</span>
+              <Check size={12} className="text-emerald-400 stroke-[2.5]" />
+              <span className="text-[11px] text-emerald-400 font-medium">Copied!</span>
             </>
           ) : (
             <>
-              <Copy size={14} />
-              <span className="text-xs font-medium">Copy</span>
+              <Copy size={12} />
+              <span className="text-[11px] font-medium">Copy</span>
             </>
           )}
         </button>
       </div>
 
-      {/* Code Content */}
-      <div className="w-full overflow-x-auto custom-scrollbar">
+      {/* Code Body */}
+      <div className="w-full overflow-x-auto custom-scrollbar bg-[#0d0d10]">
         <SyntaxHighlighter
-          style={vscDarkPlus}
+          style={claudeTheme}
           language={lang || 'text'}
           PreTag="div"
+          showLineNumbers={showLineNumbers}
+          lineNumberStyle={{
+            minWidth: '2.5rem',
+            paddingRight: '1rem',
+            color: 'rgba(255, 255, 255, 0.18)',
+            textAlign: 'right',
+            userSelect: 'none',
+            fontSize: '12px'
+          }}
           customStyle={{
             margin: 0,
-            padding: '1rem',
+            padding: showLineNumbers ? '1rem 1.25rem 1rem 0.5rem' : '1rem 1.25rem',
             background: 'transparent',
             fontSize: '13px',
-            lineHeight: '1.5',
+            lineHeight: '1.6',
           }}
           {...props}
         >

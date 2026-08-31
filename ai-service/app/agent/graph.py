@@ -22,6 +22,7 @@ from app.agent.evaluator import EvidenceEvaluator
 from app.services.rag_service import RAGService
 from app.models.ai_execute import AiExecuteRequest
 from app.models.evidence import EvidenceItem
+from app.agent.events import create_activity_event
 from app.core.config import settings
 from app.services.context_manager import ContextManagerService
 from app.services.context_manager import ContextManagerService
@@ -372,6 +373,37 @@ class AgentGraph:
         state["needs_retrieval"] = needs_rag
         state["needs_web_search"] = needs_web
         state["needs_analysis"] = needs_analysis
+
+        # Activity events for live reasoning UI (applied across all agent modes)
+        activity_events = [
+            create_activity_event(
+                stage="understanding",
+                title="Understanding request",
+                status="completed"
+            )
+        ]
+        if needs_rag or needs_web or needs_code or mode in ["RESEARCH", "ANALYZE"]:
+            activity_events.append(create_activity_event(
+                stage="retrieval",
+                title="Retrieving relevant knowledge",
+                status="running",
+                description="Querying internal documents & web sources" if needs_web else "Querying vector database"
+            ))
+        elif needs_analysis or mode == "PLAN":
+            activity_events.append(create_activity_event(
+                stage="planning",
+                title="Formulating strategy & reasoning",
+                status="running",
+                description="Analyzing constraints and objectives"
+            ))
+        else:
+            activity_events.append(create_activity_event(
+                stage="generation",
+                title="Synthesizing response",
+                status="running",
+                description="Formulating answer from context & memory"
+            ))
+        state["activity_events"] = activity_events
         
         logger.info(
             f"Decision Layer [{mode}]: RAG={needs_rag}, Web={needs_web}, Mem={needs_memory}, "
@@ -412,28 +444,28 @@ class AgentGraph:
         if existing_memories:
             memories_str = "\n".join([f"- [ID: {m['id']}] {m['content']}" for m in existing_memories])
             
-        prompt = f"""User query: '{query}'
+        prompt = f"""User message: '{query}'
 
-Existing memories:
+Existing long-term memories:
 {memories_str}
 
-Extract any new long-term facts about the user from this query (e.g., their name, profession, preferences).
-If the new fact contradicts an existing memory (e.g., they changed their favorite language), you must provide the ID of the old memory to delete.
+TASK:
+1. Extract any new long-term facts, preferences, background, tech stack, or goals about the user from their message.
+2. If the new fact contradicts or updates an existing memory, list the old memory ID in delete_ids.
+3. If no personal facts exist in the query, return "extracted_fact": null.
 
-CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, reasoning, or markdown formatting. The JSON must exactly match this structure:
+JSON FORMAT CONTRACT (Return ONLY this JSON object):
 {{
-  "extracted_fact": "The new fact to save, or null if nothing to extract",
-  "delete_ids": ["id_to_delete_1", "id_to_delete_2"]
-}}
-"""
+  "extracted_fact": "Concise factual statement about user (e.g. 'User's name is Mahesh and they are preparing for DevOps roles' or 'User loves Spring Boot') or null",
+  "delete_ids": []
+}}"""
         
         ai_request = AiExecuteRequest(
             prompt=prompt,
-            systemPrompt="You are a smart memory manager. Output ONLY raw JSON without any markdown formatting.",
+            systemPrompt="You are an autonomous long-term user memory engine. Output ONLY a valid JSON object. Do not include markdown explanation or reasoning.",
             temperature=0.1,
-            maxTokens=150
+            maxTokens=512
         )
-        
         
         try:
             response = self.llm_gateway.execute_prompt(ai_request)
@@ -473,16 +505,49 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
                     except Exception:
                         pass
                         
-            # 4. Fallback regex to extract fact string directly
+            # 4. Fallback regex to extract fact string directly from JSON keys
             if result is None:
                 fact_match = re.search(r'"extracted_fact"\s*:\s*"([^"]+)"', cleaned)
                 if fact_match:
                     result = {"extracted_fact": fact_match.group(1), "delete_ids": []}
-                else:
-                    result = {"extracted_fact": None, "delete_ids": []}
             
-            fact = result.get("extracted_fact")
-            delete_ids = result.get("delete_ids") or []
+            # 5. Fallback regex to extract from thinking/prose output (e.g. 'Fact: User loves SpringBoot')
+            if result is None:
+                prose_fact_match = re.search(r'(?:Fact|Extracted Fact|User Fact):\s*(?:User\s+)?([^\n]+)', cleaned, re.IGNORECASE)
+                if prose_fact_match:
+                    extracted_text = prose_fact_match.group(1).strip().rstrip(".,")
+                    if not extracted_text.lower().startswith("user"):
+                        extracted_text = f"User {extracted_text}"
+                    result = {"extracted_fact": extracted_text, "delete_ids": []}
+
+            # 6. Multi-fact and heuristic extraction fallback
+            fact = result.get("extracted_fact") if result else None
+            facts_to_save = []
+            if fact and isinstance(fact, str) and fact.lower() not in ["none", "null"]:
+                facts_to_save.append(fact)
+
+            # Heuristic multi-part check for high-signal user attributes
+            name_m = re.search(r'\bmy name is\s+([A-Za-z]+)', query, re.IGNORECASE)
+            if name_m:
+                name_fact = f"User's name is {name_m.group(1).title()}"
+                if not any(name_m.group(1).lower() in f.lower() for f in facts_to_save):
+                    facts_to_save.append(name_fact)
+
+            role_m = re.search(r'\bi am (preparing for|learning|working as|working on|studying)\s+([A-Za-z0-9\s\.\-_]+)', query, re.IGNORECASE)
+            if role_m:
+                action_verb = role_m.group(1).strip()
+                action_target = role_m.group(2).strip()
+                role_fact = f"User is {action_verb} {action_target}"
+                if not any(action_target.lower() in f.lower() for f in facts_to_save):
+                    facts_to_save.append(role_fact)
+
+            love_m = re.search(r'\bi love\s+([A-Za-z0-9\s\.\-_]+)', query, re.IGNORECASE)
+            if love_m:
+                love_fact = f"User loves {love_m.group(1).strip()}"
+                if not any("loves" in f.lower() for f in facts_to_save):
+                    facts_to_save.append(love_fact)
+
+            delete_ids = result.get("delete_ids", []) if result else []
             
             # Delete old memories
             for d_id in delete_ids:
@@ -496,11 +561,13 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
                 if m["id"] not in delete_ids
             ]
                     
-            # Add new memory
-            if fact and isinstance(fact, str) and fact.lower() not in ["none", "null"]:
-                logger.info(f"Extracted user memory via LLM: {fact}")
-                self.rag_service.add_user_memory(user_id, fact)
-                state["user_memories"].append(fact)
+            # Add new memories
+            if facts_to_save:
+                for f_item in facts_to_save:
+                    logger.info(f"Saving user memory to brain: {f_item}")
+                    self.rag_service.add_user_memory(user_id, f_item)
+                    if f_item not in state["user_memories"]:
+                        state["user_memories"].append(f_item)
                 state["memory_status"] = "SAVED"
             else:
                 state["memory_status"] = "SKIPPED"
@@ -520,13 +587,15 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
         return state
 
     def route_classification(self, state: AgentState) -> str:
-        needs_retrieval = (
-            state.get("needs_memory") or
+        # Memory is already injected directly into system prompt in extract_user_memory.
+        # Only external document/web/code retrieval or analysis requires multi-node evidence collection.
+        needs_external_retrieval = (
             state.get("needs_rag") or
             state.get("needs_web") or
-            state.get("needs_code_retrieval")
+            state.get("needs_code_retrieval") or
+            state.get("needs_analysis")
         )
-        if needs_retrieval or state.get("needs_analysis"):
+        if needs_external_retrieval:
             return "collect_initial_evidence"
         return "direct_answer"
 
@@ -697,6 +766,14 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
         metrics = state.get("execution_metrics") or {}
         metrics["retrieval_calls"] = 0
         
+        activity_events = list(state.get("activity_events") or [])
+        # Complete planning stage if running
+        for act in activity_events:
+            if act["stage"] == "planning" and act["status"] == "running":
+                act["status"] = "completed"
+                act["description"] = "Source strategy formulated"
+                break
+
         # Determine which retrievers to run based on the Source Decision Layer
         futures = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
@@ -736,7 +813,6 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
                     
                     # Record statuses and metrics
                     status_key = f"{source}_retrieval_status"
-                    # Maps to memory_retrieval_status, rag_retrieval_status (we map to document_retrieval_status), etc.
                     if source == "rag":
                         state["document_retrieval_status"] = "SUCCESS" if result else "NO_RESULTS"
                     else:
@@ -762,6 +838,35 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
 
         state["evidence"] = self._deduplicate_evidence(state.get("evidence", []), new_evidence)
         state["execution_metrics"] = metrics
+
+        # Record retrieval activity event
+        if activity_events:
+            doc_count = sum(1 for e in new_evidence if e.source_type == "document")
+            web_count = sum(1 for e in new_evidence if e.source_type == "web")
+            code_count = sum(1 for e in new_evidence if e.source_type == "code")
+            mem_count = sum(1 for e in new_evidence if e.source_type == "user_memory")
+            
+            parts = []
+            if doc_count: parts.append(f"{doc_count} document{'s' if doc_count > 1 else ''}")
+            if web_count: parts.append(f"{web_count} web source{'s' if web_count > 1 else ''}")
+            if code_count: parts.append(f"{code_count} code file{'s' if code_count > 1 else ''}")
+            if mem_count: parts.append(f"{mem_count} memory fact{'s' if mem_count > 1 else ''}")
+            desc = f"Retrieved {', '.join(parts)}" if parts else "0 sources found"
+
+            activity_events.append(create_activity_event(
+                stage="retrieval",
+                title="Searching relevant sources",
+                status="completed",
+                description=desc,
+                metadata={"sources_count": len(new_evidence)}
+            ))
+            activity_events.append(create_activity_event(
+                stage="evidence_evaluation",
+                title="Evaluating retrieved evidence",
+                status="running"
+            ))
+            state["activity_events"] = activity_events
+
         return state
 
     # -------------------------------------------------------------------------
@@ -782,6 +887,14 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
             state["evaluation_status"] = "SUFFICIENT"
             state["evaluation_reason"] = "User explicitly attached a document."
             state["missing_information"] = []
+            
+            activity_events = list(state.get("activity_events") or [])
+            for act in activity_events:
+                if act["stage"] == "evidence_evaluation" and act["status"] == "running":
+                    act["status"] = "completed"
+                    act["description"] = "Attached document loaded"
+                    break
+            state["activity_events"] = activity_events
             return state
             
         result = self.evaluator.evaluate(state["query"], evidence)
@@ -789,6 +902,15 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
         state["evaluation_status"] = result.status.value
         state["evaluation_reason"] = result.reason
         state["missing_information"] = result.missing_information
+
+        activity_events = list(state.get("activity_events") or [])
+        for act in activity_events:
+            if act["stage"] == "evidence_evaluation" and act["status"] == "running":
+                act["status"] = "completed"
+                act["description"] = f"Evaluation status: {result.status.value}"
+                break
+        state["activity_events"] = activity_events
+
         return state
 
     def route_evaluation(self, state: AgentState) -> str:
@@ -855,6 +977,22 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
             suffix = missing[0] if missing else "extra information"
             state["search_queries"].append(f"{state['query']} {suffix}")
 
+        activity_events = list(state.get("activity_events") or [])
+        latest_query = state["search_queries"][-1]
+        activity_events.append(create_activity_event(
+            stage="query_refinement",
+            title="Refining search query",
+            status="completed",
+            description=f"Refined query: {latest_query}",
+            metadata={"refined_query": latest_query}
+        ))
+        activity_events.append(create_activity_event(
+            stage="retrieval",
+            title="Searching additional sources",
+            status="running"
+        ))
+        state["activity_events"] = activity_events
+
         return state
 
     # -------------------------------------------------------------------------
@@ -873,6 +1011,20 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
 
         state["evidence"] = self._deduplicate_evidence(state.get("evidence", []), new_evidence)
         state["iteration"] += 1
+        
+        activity_events = list(state.get("activity_events") or [])
+        for act in activity_events:
+            if act["stage"] == "retrieval" and act["status"] == "running":
+                act["status"] = "completed"
+                act["description"] = f"Found {len(new_evidence)} additional sources"
+                break
+        activity_events.append(create_activity_event(
+            stage="evidence_evaluation",
+            title="Evaluating updated evidence",
+            status="running"
+        ))
+        state["activity_events"] = activity_events
+        
         return state
 
     # -------------------------------------------------------------------------
@@ -1026,8 +1178,20 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
         )
 
         state["final_request"] = ai_request.model_dump(exclude_none=True)
-        state["final_request"] = ai_request.model_dump(exclude_none=True)
         state["mode"] = "analysis"
+        
+        activity_events = list(state.get("activity_events") or [])
+        for act in activity_events:
+            if act["status"] == "running":
+                act["status"] = "completed"
+        activity_events.append(create_activity_event(
+            stage="generation",
+            title="Generating analysis response",
+            status="running",
+            description="Synthesizing structured findings"
+        ))
+        state["activity_events"] = activity_events
+
         return state
 
     # -------------------------------------------------------------------------
@@ -1045,7 +1209,16 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
         # Inject memory directly into system prompt
         if state.get("user_memories"):
             memories_str = "\n".join([f"- {m}" for m in state["user_memories"]])
-            system_prompt += f"\n\nHere are some personal facts you know about this user. Use them to personalize your response if relevant:\n{memories_str}"
+            system_prompt += (
+                f"\n\nUSER BACKGROUND / CONTEXT:\n{memories_str}\n"
+                "GUIDELINE: Use user background naturally ONLY if directly relevant to the user's inquiry (such as career guidance or tailored advice). "
+                "NEVER prepend dedication subheadings (e.g., 'Designed for [Name]'), and do not force user names or background into technical code implementations, system designs, or algorithmic solutions."
+            )
+        elif state.get("needs_memory") or _matches_any(state.get("query", "").lower(), _MEMORY_PATTERNS):
+            system_prompt += (
+                "\n\nUSER MEMORY STATUS: No saved memories or personal facts exist for this user in the database.\n"
+                "INSTRUCTION: When asked what you know about the user, clearly and politely inform them that you currently do not have any saved facts or personal information about them stored in memory yet, and invite them to share their goals, preferences, or background whenever they like."
+            )
         
         context_result = self.context_manager.build_context(
             system_prompt=system_prompt,
@@ -1098,6 +1271,19 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
         metrics["llm_calls"] = 1
         state["execution_metrics"] = metrics
         
+        activity_events = list(state.get("activity_events") or [])
+        if activity_events:
+            for act in activity_events:
+                if act["status"] == "running":
+                    act["status"] = "completed"
+            activity_events.append(create_activity_event(
+                stage="generation",
+                title="Generating response",
+                status="running",
+                description="Synthesizing response from verified evidence"
+            ))
+            state["activity_events"] = activity_events
+        
         return state
 
     # -------------------------------------------------------------------------
@@ -1111,7 +1297,16 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
         # Inject memory directly into system prompt
         if state.get("user_memories"):
             memories_str = "\n".join([f"- {m}" for m in state["user_memories"]])
-            system_prompt += f"\n\nHere are some personal facts you know about this user. Use them to personalize your response if relevant:\n{memories_str}"
+            system_prompt += (
+                f"\n\nUSER BACKGROUND / CONTEXT:\n{memories_str}\n"
+                "GUIDELINE: Use user background naturally ONLY if directly relevant to the user's inquiry (such as career guidance or tailored advice). "
+                "NEVER prepend dedication subheadings (e.g., 'Designed for [Name]'), and do not force user names or background into technical code implementations, system designs, or algorithmic solutions."
+            )
+        elif state.get("needs_memory") or _matches_any(state.get("query", "").lower(), _MEMORY_PATTERNS):
+            system_prompt += (
+                "\n\nUSER MEMORY STATUS: No saved memories or personal facts exist for this user in the database.\n"
+                "INSTRUCTION: When asked what you know about the user, clearly and politely inform them that you currently do not have any saved facts or personal information about them stored in memory yet, and invite them to share their goals, preferences, or background whenever they like."
+            )
 
         context_result = self.context_manager.build_context(
             system_prompt=system_prompt,
@@ -1136,6 +1331,18 @@ CRITICAL INSTRUCTION: Output ONLY valid JSON. Do not include any explanations, r
         )
         state["final_request"] = ai_request.model_dump(exclude_none=True)
         state["mode"] = "direct"
+
+        activity_events = list(state.get("activity_events") or [])
+        for act in activity_events:
+            if act.get("status") == "running":
+                act["status"] = "completed"
+        activity_events.append(create_activity_event(
+            stage="generation",
+            title="Synthesizing response",
+            status="running",
+            description="Formulating answer from context & memory"
+        ))
+        state["activity_events"] = activity_events
         return state
 
     # -------------------------------------------------------------------------

@@ -67,25 +67,34 @@ class RAGService:
         return chunks
 
     def add_user_memory(self, user_id: str, fact: str):
-        """Adds a fact to the user's long term memory in the vector store."""
-        if not fact:
+        """Adds a fact to the user's long term memory in the vector store with deduplication."""
+        if not fact or not fact.strip():
             return
             
-        vectors = self.embedding_service.embed_chunks([fact])
+        fact_clean = fact.strip()
+        
+        # Check if identical fact already exists
+        try:
+            existing = self.list_user_memory(user_id)
+            if any(m.get("content", "").strip().lower() == fact_clean.lower() for m in existing):
+                logger.info(f"Memory fact already exists for user {user_id}, skipping duplicate: {fact_clean}")
+                return
+        except Exception as e:
+            logger.warning(f"Could not check existing memories for deduplication: {e}")
+            
+        vectors = self.embedding_service.embed_chunks([fact_clean])
         if not vectors:
             return
             
         import uuid
-        # Generate a unique chunk ID so we don't overwrite previous memories
         unique_id = str(uuid.uuid4())
         
-        # We bypass the normal upsert which uses deterministic UUIDs based on index
         from qdrant_client.models import PointStruct
         payload = {
             "user_id": user_id,
             "document_id": "user_profile_memory",
             "chunk_id": unique_id,
-            "content": fact,
+            "content": fact_clean,
             "filename": "User Profile Memory",
             "is_memory": True
         }

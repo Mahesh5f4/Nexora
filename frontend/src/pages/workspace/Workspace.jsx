@@ -27,8 +27,8 @@ const ROLES = [
 ];
 
 // ─── Route to the right mode component ──────────────────────────────────────
-const ModeRenderer = ({ role, activeConversation, setActiveConversation, fetchConversations, onConversationCreated }) => {
-  const props = { activeConversation, setActiveConversation, fetchConversations, onConversationCreated };
+const ModeRenderer = ({ role, activeConversation, setActiveConversation, fetchConversations, onConversationCreated, onOpenSidebar }) => {
+  const props = { activeConversation, setActiveConversation, fetchConversations, onConversationCreated, onOpenSidebar };
   switch (role) {
     case 'RESEARCH': return <ResearcherMode {...props} />;
     case 'PLAN': return <PlannerMode {...props} />;
@@ -248,10 +248,7 @@ const Workspace = () => {
                             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${activeConversation?.id === conv.id ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-white/40 group-hover:bg-white/10 group-hover:text-white/70'}`}>
                               {roleObj ? <roleObj.icon size={13} /> : <MessageSquare size={13} />}
                             </div>
-                            <div className="flex flex-col">
-                              <span className="truncate text-sm font-medium">{conv.title || 'Untitled'}</span>
-                              <span className="text-[9px] text-white/30">{new Date(conv.updatedAt || conv.createdAt || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                            </div>
+                            <span className="truncate text-sm font-medium">{conv.title || 'Untitled'}</span>
                           </div>
                           <button
                             onClick={e => handleDelete(conv.id, e)}
@@ -288,10 +285,7 @@ const Workspace = () => {
                             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${activeConversation?.id === conv.id ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-white/40 group-hover:bg-white/10 group-hover:text-white/70'}`}>
                               {roleObj ? <roleObj.icon size={13} /> : <MessageSquare size={13} />}
                             </div>
-                            <div className="flex flex-col">
-                              <span className="truncate text-sm font-medium">{conv.title || 'Untitled'}</span>
-                              <span className="text-[9px] text-white/30">{new Date(conv.updatedAt || conv.createdAt || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                            </div>
+                            <span className="truncate text-sm font-medium">{conv.title || 'Untitled'}</span>
                           </div>
                           <button
                             onClick={e => handleDelete(conv.id, e)}
@@ -337,20 +331,6 @@ const Workspace = () => {
 
       {/* ─── Main Content Area ───────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col relative overflow-hidden">
-        {/* Mobile top bar */}
-        <div className="md:hidden h-14 flex items-center justify-between px-4 border-b border-white/5 bg-[#0A0A0A]/90 backdrop-blur-md shrink-0">
-          <button onClick={() => setSidebarOpen(v => !v)} className="text-white/60 hover:text-white">
-            <Menu size={20} />
-          </button>
-          <div className="flex items-center gap-2">
-            <activeRoleObj.icon size={14} className={activeRoleObj.color} />
-            <span className="text-sm font-semibold text-white/80">{activeRoleObj.label}</span>
-          </div>
-          <button onClick={() => { dispatch(logout()); navigate('/login'); }} className="text-white/50 hover:text-white">
-            <LogOut size={18} />
-          </button>
-        </div>
-
         {/* Mode renderer */}
         <div className="flex-1 relative overflow-hidden">
           <ModeRenderer
@@ -359,6 +339,7 @@ const Workspace = () => {
             setActiveConversation={handleSetActiveConversation}
             fetchConversations={fetchConversations}
             onConversationCreated={handleConversationCreated}
+            onOpenSidebar={() => setSidebarOpen(true)}
           />
         </div>
       </div>

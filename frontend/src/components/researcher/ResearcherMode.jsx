@@ -2,11 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion } from 'framer-motion';
-import { Compass, User, RefreshCw, Globe, ExternalLink, AlertTriangle, Copy, Check, Plus, BookOpen, Microscope, Zap, Database } from 'lucide-react';
+import { Compass, User, RefreshCw, Globe, ExternalLink, AlertTriangle, Copy, Check, Plus, BookOpen, Microscope, Zap, Database, Menu } from 'lucide-react';
 import { useAgentStream } from '../../hooks/useAgentStream';
 import CodeBlock from '../chat/CodeBlock';
 import AgentInput from '../chat/AgentInput';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
+import ReasoningActivityPanel from '../chat/ReasoningActivityPanel';
 import { AGENT_CONFIG } from '../../config/agentConfig';
 import { copyToClipboard } from '../../utils/clipboard';
 
@@ -111,6 +112,14 @@ const ResearchMessage = React.memo(({ msg, allSources }) => {
 
       <div className={`flex-1 overflow-hidden ${isUser ? 'flex flex-col items-end' : ''}`}>
         {!isUser && msg.metadata && <SourceRoutingTags flags={msg.metadata} />}
+        {!isUser && (
+          <ReasoningActivityPanel 
+            activities={msg.activities} 
+            thinking={msg.thinking} 
+            isStreaming={Boolean(msg.streaming)} 
+            hasContent={Boolean(msg.content)}
+          />
+        )}
 
         {/* Conflict warning banner */}
         {!isUser && hasConflict && !msg.streaming && (
@@ -127,11 +136,6 @@ const ResearchMessage = React.memo(({ msg, allSources }) => {
         }`}>
           {isUser ? (
             <p className="whitespace-pre-wrap">{rawContent}</p>
-          ) : msg.streaming && !msg.content ? (
-            <div className="flex items-center gap-2 text-white/30">
-              <RefreshCw size={13} className="animate-spin" />
-              <span className="text-xs">Researching…</span>
-            </div>
           ) : (
             <div className="prose prose-invert prose-sm max-w-none
               prose-p:leading-relaxed
@@ -189,6 +193,8 @@ const ResearchMessage = React.memo(({ msg, allSources }) => {
     prevProps.msg.id === nextProps.msg.id &&
     prevProps.msg.content === nextProps.msg.content &&
     prevProps.msg.streaming === nextProps.msg.streaming &&
+    prevProps.msg.thinking === nextProps.msg.thinking &&
+    prevProps.msg.activities?.length === nextProps.msg.activities?.length &&
     prevProps.msg.sources?.length === nextProps.msg.sources?.length
   );
 });
@@ -200,7 +206,7 @@ const STARTERS = [
   'What is the consensus on climate tipping points in 2024?',
 ];
 
-const ResearcherMode = ({ activeConversation, setActiveConversation, fetchConversations, onConversationCreated }) => {
+const ResearcherMode = ({ activeConversation, setActiveConversation, fetchConversations, onConversationCreated, onOpenSidebar }) => {
   const {
     messages, isLoading, error, activeSources,
     handleSend, handleStop, handleNewChat, syncConversation
@@ -229,33 +235,44 @@ const ResearcherMode = ({ activeConversation, setActiveConversation, fetchConver
   return (
     <div className="flex flex-col h-full bg-[#090710] text-white font-sans relative">
       {/* Header */}
-      <header className="h-14 shrink-0 border-b border-purple-500/10 flex items-center justify-between px-4 sm:px-6 bg-[#090710]/70 backdrop-blur-xl z-30 sticky top-0">
+      <header className="h-14 shrink-0 border-b border-purple-500/10 flex items-center justify-between px-3 sm:px-6 bg-[#090710]/80 backdrop-blur-xl z-30 sticky top-0">
         <div className="flex items-center gap-2.5">
-          <Compass size={15} className="text-purple-400" />
-          <span className="text-sm font-semibold text-purple-400/80 tracking-wide uppercase text-xs">Researcher</span>
+          <button
+            onClick={onOpenSidebar}
+            className="md:hidden p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
+            aria-label="Open sidebar menu"
+          >
+            <Menu size={18} />
+          </button>
+          <div className="flex items-center gap-2">
+            <Compass size={16} className="text-purple-400" />
+            <span className="text-xs sm:text-sm font-semibold text-purple-200 tracking-wide">Researcher</span>
+          </div>
           {isLoading && (
-            <span className="flex items-center gap-1.5 text-[11px] text-purple-400/50 ml-2">
+            <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-purple-400/70 ml-1">
               <RefreshCw size={11} className="animate-spin" /> Researching…
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {activeSources.length > 0 && (
-            <span className="flex items-center gap-1 text-[11px] text-purple-400/50">
+            <span className="flex items-center gap-1 text-[11px] text-purple-400/60 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
               <Globe size={10} /> {activeSources.length} sources
             </span>
           )}
           <button
             onClick={handleNewChat}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-purple-500/20 text-white/40 hover:text-white/80 transition-all"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer"
+            aria-label="Start new research"
           >
-            <Plus size={11} /> New Research
+            <Plus size={13} />
+            <span className="hidden sm:inline">New Research</span>
           </button>
         </div>
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-12 py-6 relative">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-6 pb-36 sm:pb-40 relative">
         {messages.length === 0 ? (
           <div className="min-h-full flex flex-col items-center max-w-4xl mx-auto px-4 w-full pt-10 pb-32 sm:pb-36">
             <div className="flex-1" />

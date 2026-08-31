@@ -184,9 +184,19 @@ async def ask_agent_stream(
                 }
                 
                 yield f"event: start\ndata: {{}}\n\n"
+                initial_act = {
+                    "id": "act_init_0",
+                    "stage": "understanding",
+                    "title": "Understanding request",
+                    "status": "running",
+                    "description": "Analyzing query & context"
+                }
+                yield f"event: activity\ndata: {json.dumps(initial_act)}\n\n"
                 
                 final_state = None
-                # Run graph step by step to emit status events
+                emitted_activity_states = {"act_init_0_running_Analyzing query & context": True}
+                
+                # Run graph step by step to emit status and activity events
                 for output in graph.stream(initial_state):
                     for node_name, state in output.items():
                         final_state = state
@@ -201,15 +211,27 @@ async def ask_agent_stream(
                                 "needsLlm": state.get("needs_llm", True)
                             }
                             yield f"event: metadata\ndata: {json.dumps(flags)}\n\n"
+                            
+                        # Emit structured activity updates
+                        for act in state.get("activity_events", []):
+                            act_id = act.get("id")
+                            status = act.get("status")
+                            desc = act.get("description")
+                            key = f"{act_id}_{status}_{desc}"
+                            if act_id and key not in emitted_activity_states:
+                                emitted_activity_states[key] = True
+                                yield f"event: activity\ndata: {json.dumps(act)}\n\n"
                 
                 if final_state is None:
                     final_state = initial_state
                     
-                # Emit collected sources
+                # Emit collected sources (only web, document, code — NEVER user_memory)
                 seen_keys = set()
                 for ev in final_state.get("evidence", []):
+                    if ev.source_type == "user_memory" or ev.source_type not in ["web", "document", "code"]:
+                        continue
                     key = ev.title if ev.source_type == "document" else getattr(ev, 'url', getattr(ev, 'document_id', ''))
-                    if key in seen_keys:
+                    if not key or key in seen_keys:
                         continue
                     seen_keys.add(key)
                     
@@ -227,6 +249,7 @@ async def ask_agent_stream(
                 # Check if we have a final_request to stream
                 if "final_request" in final_state and final_state["final_request"]:
                     yield f"event: status\ndata: {json.dumps({'stage': 'generating'})}\n\n"
+                    yield f"event: answer_started\ndata: {{}}\n\n"
                     
                     ai_req = AiExecuteRequest(**final_state["final_request"])
                     
@@ -262,10 +285,7 @@ async def ask_agent_stream(
                                 yield f"event: token\ndata: {json.dumps({'text': chunk})}\n\n"
                             
                         if not aborted:
-                            # Final validation
                             val_result = validator.validate(full_response, evidence)
-                            
-                            # Update state
                             final_state["answer"] = val_result["validated_text"]
                             final_state["analyze_validation_status"] = val_result["status"]
                             final_state["analyze_validation_warnings"] = val_result["warnings"]
@@ -291,7 +311,6 @@ async def ask_agent_stream(
                                         yield f"event: token\ndata: {json.dumps({'text': chunk})}\n\n"
                         except Exception as gen_err:
                             logger.error(f"LLM generation stream failed: {gen_err}")
-                            # Fallback: show sources found with a helpful message
                             web_sources = [ev for ev in final_state.get("evidence", []) if ev.source_type == "web"]
                             if web_sources:
                                 fallback = "⚠️ The AI model is temporarily unavailable, but here are the relevant sources found:\n\n"
@@ -303,10 +322,18 @@ async def ask_agent_stream(
                                 fallback = "⚠️ The AI model is temporarily unavailable. Please try again in a moment."
                             yield f"event: token\ndata: {json.dumps({'text': fallback})}\n\n"
                 else:
-                    # In unsupported or error modes, answer is directly set
                     if final_state.get("answer"):
+                        yield f"event: answer_started\ndata: {{}}\n\n"
                         yield f"event: token\ndata: {json.dumps({'text': final_state['answer']})}\n\n"
 
+                # Complete any running generation activity
+                for act in final_state.get("activity_events", []):
+                    if act.get("stage") == "generation" and act.get("status") == "running":
+                        act["status"] = "completed"
+                        yield f"event: activity\ndata: {json.dumps(act)}\n\n"
+
+                yield f"event: answer_completed\ndata: {{}}\n\n"
+                yield f"event: request_completed\ndata: {{}}\n\n"
                 yield f"event: done\ndata: {{}}\n\n"
 
             except HTTPException as e:

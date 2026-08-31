@@ -2,7 +2,7 @@ import React from 'react';
 import { Zap, Sparkles } from 'lucide-react';
 
 const MarqueeBanner = () => {
-  const text = "⚡ NOTICE: ThinkAction AI Live — Multi-Agent Orchestration, Vector RAG & Real-Time Evidence Retrieval. 🚀";
+  const text = "⚠️ Notice: Running on Free Tier AI Models & Community Sources — Responses may experience rate limits or delays during high traffic. Thank you for understanding! ⚡";
 
   return (
     <div

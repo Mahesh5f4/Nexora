@@ -11,7 +11,6 @@ import { useAgentStream } from '../../hooks/useAgentStream';
 import CodeBlock from '../chat/CodeBlock';
 import AgentInput from '../chat/AgentInput';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
-import ReasoningActivityPanel from '../chat/ReasoningActivityPanel';
 import { AGENT_CONFIG } from '../../config/agentConfig';
 import { copyToClipboard } from '../../utils/clipboard';
 
@@ -221,14 +220,6 @@ const PlanMessage = React.memo(({ msg }) => {
 
       <div className={`flex-1 overflow-hidden ${isUser ? 'flex flex-col items-end' : ''}`}>
         {!isUser && msg.metadata && <SourceRoutingTags flags={msg.metadata} />}
-        {!isUser && (
-          <ReasoningActivityPanel 
-            activities={msg.activities} 
-            thinking={msg.thinking} 
-            isStreaming={Boolean(msg.streaming)} 
-            hasContent={Boolean(msg.content)}
-          />
-        )}
 
         {/* Plan Header Bar with Task Tracker */}
         {!isUser && !msg.streaming && msg.content && totalTasks > 0 && (
@@ -253,6 +244,11 @@ const PlanMessage = React.memo(({ msg }) => {
         }`}>
           {isUser ? (
             <p className="whitespace-pre-wrap">{content}</p>
+          ) : msg.streaming && !msg.content ? (
+            <div className="flex items-center gap-2 text-white/40">
+              <RefreshCw size={13} className="animate-spin text-rose-400" />
+              <span className="text-xs">Formulating strategic plan…</span>
+            </div>
           ) : (
             <div className="prose prose-invert prose-sm max-w-none
               prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent

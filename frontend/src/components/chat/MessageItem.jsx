@@ -3,7 +3,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { User, BrainCircuit, Globe, FileText, ExternalLink, Copy, Check, RefreshCw, MoreHorizontal } from 'lucide-react';
 import CodeBlock from './CodeBlock';
-import ReasoningActivityPanel from './ReasoningActivityPanel';
 import { copyToClipboard } from '../../utils/clipboard';
 
 /**
@@ -118,12 +117,6 @@ const MessageItem = ({ message, isStreaming, onStreamingComplete }) => {
               <div className="bg-[#1A1A1C] rounded-2xl px-4 py-3 whitespace-pre-wrap text-[14px] leading-[1.6]">{message.content}</div>
             ) : (
               <div className="space-y-4">
-                <ReasoningActivityPanel 
-                  activities={message.activities} 
-                  thinking={message.thinking} 
-                  isStreaming={Boolean(isStreaming)} 
-                  hasContent={Boolean(displayedContent)} 
-                />
                 {/* §15: aria-live="polite" on streaming text region */}
                 <div 
                   className="prose prose-invert prose-sm md:prose-base max-w-none 

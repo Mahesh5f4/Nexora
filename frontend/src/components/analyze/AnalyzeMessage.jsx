@@ -4,7 +4,6 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import CodeBlock from '../chat/CodeBlock';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
-import ReasoningActivityPanel from '../chat/ReasoningActivityPanel';
 import { User, BrainCircuit, CheckCircle2, AlertTriangle, Loader2, Copy, Check } from 'lucide-react';
 import { AGENT_CONFIG } from '../../config/agentConfig';
 import { copyToClipboard } from '../../utils/clipboard';
@@ -80,21 +79,18 @@ const AnalyzeMessage = React.memo(({ message }) => {
       {/* Bubble Container */}
       <div className={`flex-1 overflow-hidden flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
         {!isUser && message.metadata && <SourceRoutingTags flags={message.metadata} />}
-        {!isUser && (
-          <ReasoningActivityPanel 
-            activities={message.activities} 
-            thinking={message.thinking} 
-            isStreaming={Boolean(message.streaming)} 
-            hasContent={Boolean(message.content)}
-          />
-        )}
 
         <div className={`px-5 py-4 ${
           isUser 
             ? 'inline-block bg-[#1A1A1C] border border-white/10 text-white/90 rounded-2xl rounded-tr-sm' 
             : 'w-full text-white/85'
         }`}>
-          {(() => {
+          {message.streaming && !message.content ? (
+            <div className="flex items-center space-x-2 text-white/40">
+              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+              <span className="text-sm">Synthesizing evidence...</span>
+            </div>
+          ) : (() => {
             let processedContent = message.content + (message.streaming ? ' ▍' : '');
             
             // Replace epistemic markers with styled raw HTML badges

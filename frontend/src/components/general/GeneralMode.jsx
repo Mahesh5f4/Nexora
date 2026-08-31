@@ -6,7 +6,6 @@ import { BrainCircuit, User, Plus, Check, Copy, Globe, Mail, Code, Lightbulb, Fi
 import { useAgentStream } from '../../hooks/useAgentStream';
 import CodeBlock from '../chat/CodeBlock';
 import AgentInput from '../chat/AgentInput';
-import ReasoningActivityPanel from '../chat/ReasoningActivityPanel';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
 import { copyToClipboard } from '../../utils/clipboard';
 
@@ -93,14 +92,6 @@ const MessageBubble = React.memo(({ msg }) => {
       
       <div className={`flex-1 overflow-hidden ${isUser ? 'flex flex-col items-end' : ''}`}>
         {!isUser && msg.metadata && <SourceRoutingTags flags={msg.metadata} />}
-        {!isUser && (
-          <ReasoningActivityPanel 
-            activities={msg.activities} 
-            thinking={msg.thinking} 
-            isStreaming={Boolean(msg.streaming)} 
-            hasContent={Boolean(msg.content)}
-          />
-        )}
         
         <div className={`px-4 py-3 ${
           isUser 
@@ -110,6 +101,11 @@ const MessageBubble = React.memo(({ msg }) => {
         }`}>
           {isUser ? (
             <p className="whitespace-pre-wrap text-[14px] leading-[1.6]">{msg.content}</p>
+          ) : msg.streaming && !msg.content ? (
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
+              Thinking…
+            </div>
           ) : (
             /* §15: aria-live="polite" on streaming text */
             <div className="prose prose-invert prose-sm max-w-none

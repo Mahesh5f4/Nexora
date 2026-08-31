@@ -226,6 +226,25 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
       streamBufferRef.current = '';
       streamThinkingRef.current = '';
 
+      const flushRender = () => {
+        const { thinking, content: cleanText } = parseThinkingAndContent(streamBufferRef.current);
+        if (thinking && thinking !== streamThinkingRef.current) {
+          streamThinkingRef.current = thinking;
+        }
+        setMessages(prev => prev.map(m =>
+          m.id === asstMsgId ? { ...m, content: cleanText, thinking: streamThinkingRef.current } : m
+        ));
+      };
+
+      const scheduleFlush = () => {
+        if (!rafRef.current) {
+          rafRef.current = requestAnimationFrame(() => {
+            rafRef.current = null;
+            flushRender();
+          });
+        }
+      };
+
       await aiService.streamMessage(
         convId,
         {
@@ -263,15 +282,11 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
               const chunk = node.content || node.text || node.token || '';
               if (chunk) {
                 streamThinkingRef.current += chunk;
-                setMessages(prev => prev.map(m =>
-                  m.id === asstMsgId ? { ...m, thinking: streamThinkingRef.current } : m
-                ));
+                scheduleFlush();
               }
             } catch {
               streamThinkingRef.current += dataStr;
-              setMessages(prev => prev.map(m =>
-                m.id === asstMsgId ? { ...m, thinking: streamThinkingRef.current } : m
-              ));
+              scheduleFlush();
             }
           } else if (eventName === 'token' || eventName === 'message') {
             try {
@@ -279,24 +294,12 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
               const chunk = node.content || node.text || node.token || (typeof node === 'string' ? node : '');
               if (chunk) {
                 streamBufferRef.current += chunk;
-                const { thinking, content: cleanText } = parseThinkingAndContent(streamBufferRef.current);
-                if (thinking && thinking !== streamThinkingRef.current) {
-                  streamThinkingRef.current = thinking;
-                }
-                setMessages(prev => prev.map(m =>
-                  m.id === asstMsgId ? { ...m, content: cleanText, thinking: streamThinkingRef.current, metadata: node.metadata || m.metadata } : m
-                ));
+                scheduleFlush();
               }
             } catch {
               if (dataStr && dataStr !== '{}') {
                 streamBufferRef.current += dataStr;
-                const { thinking, content: cleanText } = parseThinkingAndContent(streamBufferRef.current);
-                if (thinking && thinking !== streamThinkingRef.current) {
-                  streamThinkingRef.current = thinking;
-                }
-                setMessages(prev => prev.map(m =>
-                  m.id === asstMsgId ? { ...m, content: cleanText, thinking: streamThinkingRef.current } : m
-                ));
+                scheduleFlush();
               }
             }
           } else if (eventName === 'source') {
@@ -333,6 +336,11 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
         },
         controller.signal
       );
+
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
 
       const { thinking: finalThinking, content: finalCleanContent } = parseThinkingAndContent(streamBufferRef.current);
       const activeThinking = finalThinking || streamThinkingRef.current;

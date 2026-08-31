@@ -35,6 +35,8 @@ import org.springframework.data.domain.Pageable;
 @Service
 public class ConversationService {
 
+    private static final com.fasterxml.jackson.databind.ObjectMapper OBJECT_MAPPER = new com.fasterxml.jackson.databind.ObjectMapper();
+
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
@@ -222,7 +224,7 @@ public class ConversationService {
                             if (!data.isEmpty()) {
                                 Object dataToSend = data;
                                 try {
-                                    com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(data);
+                                    com.fasterxml.jackson.databind.JsonNode node = OBJECT_MAPPER.readTree(data);
                                     if (("token".equals(eventName) || "message".equals(eventName)) && node != null) {
                                         if (node.has("text")) {
                                             fullAnswer.append(node.get("text").asText());

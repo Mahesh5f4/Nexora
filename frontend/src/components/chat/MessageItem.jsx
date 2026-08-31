@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { User, BrainCircuit, Globe, FileText, ExternalLink, Copy, Check, RefreshCw, MoreHorizontal } from 'lucide-react';
 import CodeBlock from './CodeBlock';
+import StreamingStatus from './StreamingStatus';
 import { copyToClipboard } from '../../utils/clipboard';
 
 /**
@@ -115,6 +116,8 @@ const MessageItem = ({ message, isStreaming, onStreamingComplete }) => {
             {isUser ? (
               /* §7 Chat: User messages: bg-[#1A1A1C] rounded-2xl px-4 py-3 */
               <div className="bg-[#1A1A1C] rounded-2xl px-4 py-3 whitespace-pre-wrap text-[14px] leading-[1.6]">{message.content}</div>
+            ) : isStreaming && !displayedContent ? (
+              <StreamingStatus metadata={message.metadata} mode="GENERAL" />
             ) : (
               <div className="space-y-4">
                 {/* §15: aria-live="polite" on streaming text region */}

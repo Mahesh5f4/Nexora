@@ -7,6 +7,7 @@ import { useAgentStream } from '../../hooks/useAgentStream';
 import CodeBlock from '../chat/CodeBlock';
 import AgentInput from '../chat/AgentInput';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
+import StreamingStatus from '../chat/StreamingStatus';
 import { copyToClipboard } from '../../utils/clipboard';
 
 /**
@@ -102,10 +103,7 @@ const MessageBubble = React.memo(({ msg }) => {
           {isUser ? (
             <p className="whitespace-pre-wrap text-[14px] leading-[1.6]">{msg.content}</p>
           ) : msg.streaming && !msg.content ? (
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
-              Thinking…
-            </div>
+            <StreamingStatus metadata={msg.metadata} mode="GENERAL" />
           ) : (
             /* §15: aria-live="polite" on streaming text */
             <div className="prose prose-invert prose-sm max-w-none
@@ -150,6 +148,7 @@ const MessageBubble = React.memo(({ msg }) => {
     prevProps.msg.content === nextProps.msg.content &&
     prevProps.msg.streaming === nextProps.msg.streaming &&
     prevProps.msg.thinking === nextProps.msg.thinking &&
+    prevProps.msg.metadata === nextProps.msg.metadata &&
     prevProps.msg.activities?.length === nextProps.msg.activities?.length &&
     prevProps.msg.sources?.length === nextProps.msg.sources?.length
   );

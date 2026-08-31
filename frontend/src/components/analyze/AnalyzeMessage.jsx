@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import CodeBlock from '../chat/CodeBlock';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
+import StreamingStatus from '../chat/StreamingStatus';
 import { User, BrainCircuit, CheckCircle2, AlertTriangle, Loader2, Copy, Check } from 'lucide-react';
 import { AGENT_CONFIG } from '../../config/agentConfig';
 import { copyToClipboard } from '../../utils/clipboard';
@@ -86,10 +87,7 @@ const AnalyzeMessage = React.memo(({ message }) => {
             : 'w-full text-white/85'
         }`}>
           {message.streaming && !message.content ? (
-            <div className="flex items-center space-x-2 text-white/40">
-              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-              <span className="text-sm">Synthesizing evidence...</span>
-            </div>
+            <StreamingStatus metadata={message.metadata} mode="ANALYZE" />
           ) : (() => {
             let processedContent = message.content + (message.streaming ? ' ▍' : '');
             
@@ -150,6 +148,7 @@ const AnalyzeMessage = React.memo(({ message }) => {
     prevProps.message.content === nextProps.message.content &&
     prevProps.message.streaming === nextProps.message.streaming &&
     prevProps.message.thinking === nextProps.message.thinking &&
+    prevProps.message.metadata === nextProps.message.metadata &&
     prevProps.message.activities?.length === nextProps.message.activities?.length
   );
 });

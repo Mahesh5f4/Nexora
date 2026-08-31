@@ -6,6 +6,7 @@ import { Database, User, RefreshCw, Plus, Check, Copy, Globe, ChevronDown, Uploa
 import { useAgentStream } from '../../hooks/useAgentStream';
 import CodeBlock from '../chat/CodeBlock';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
+import StreamingStatus from '../chat/StreamingStatus';
 import { documentService } from '../../services/api';
 import { copyToClipboard } from '../../utils/clipboard';
 
@@ -85,10 +86,7 @@ const MessageBubble = React.memo(({ msg }) => {
           {isUser ? (
             <p className="whitespace-pre-wrap">{msg.content}</p>
           ) : msg.streaming && !msg.content ? (
-            <div className="flex items-center gap-2 text-white/40">
-              <RefreshCw size={13} className="animate-spin text-emerald-400" />
-              <span className="text-xs">Searching knowledge base…</span>
-            </div>
+            <StreamingStatus metadata={msg.metadata} mode="KNOWLEDGE" />
           ) : (
             <div className="prose prose-invert prose-sm max-w-none
               prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent
@@ -127,6 +125,7 @@ const MessageBubble = React.memo(({ msg }) => {
     prevProps.msg.content === nextProps.msg.content &&
     prevProps.msg.streaming === nextProps.msg.streaming &&
     prevProps.msg.thinking === nextProps.msg.thinking &&
+    prevProps.msg.metadata === nextProps.msg.metadata &&
     prevProps.msg.activities?.length === nextProps.msg.activities?.length &&
     prevProps.msg.sources?.length === nextProps.msg.sources?.length
   );

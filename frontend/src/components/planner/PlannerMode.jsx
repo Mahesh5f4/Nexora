@@ -11,6 +11,7 @@ import { useAgentStream } from '../../hooks/useAgentStream';
 import CodeBlock from '../chat/CodeBlock';
 import AgentInput from '../chat/AgentInput';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
+import StreamingStatus from '../chat/StreamingStatus';
 import { AGENT_CONFIG } from '../../config/agentConfig';
 import { copyToClipboard } from '../../utils/clipboard';
 
@@ -245,10 +246,7 @@ const PlanMessage = React.memo(({ msg }) => {
           {isUser ? (
             <p className="whitespace-pre-wrap">{content}</p>
           ) : msg.streaming && !msg.content ? (
-            <div className="flex items-center gap-2 text-white/40">
-              <RefreshCw size={13} className="animate-spin text-rose-400" />
-              <span className="text-xs">Formulating strategic plan…</span>
-            </div>
+            <StreamingStatus metadata={msg.metadata} mode="PLAN" />
           ) : (
             <div className="prose prose-invert prose-sm max-w-none
               prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent
@@ -281,6 +279,7 @@ const PlanMessage = React.memo(({ msg }) => {
     prevProps.msg.content === nextProps.msg.content &&
     prevProps.msg.streaming === nextProps.msg.streaming &&
     prevProps.msg.thinking === nextProps.msg.thinking &&
+    prevProps.msg.metadata === nextProps.msg.metadata &&
     prevProps.msg.activities?.length === nextProps.msg.activities?.length
   );
 });

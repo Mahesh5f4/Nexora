@@ -49,11 +49,21 @@ _RAG_PATTERNS = [
     r"\bmy (uploaded|stored)\b",
     r"\bcompare my\b",
     r"\bsay about\b",
-    r"\bin the (document|file|notes|policy)\b",
+    r"\bin the (document|file|notes|policy|text)\b",
+    # "Summarize the section on X"
+    r"\bsummariz(e|ing) the (section|chapter|part|paragraph)\b",
+    # "Where in the text is X mentioned?"
+    r"\bwhere in the (text|document|file|pdf)\b",
+    # "explain X from the PDF / document"
+    r"\bfrom the (pdf|document|file|text|report|upload)\b",
+    # "can you explain X process from the PDF"
+    r"\b(from|in) the pdf\b",
 ]
 
 # Patterns that strongly suggest the user wants external / recent information
 _WEB_PATTERNS = [
+    r"\blook up\b",
+    r"\blookup\b",
     r"\blatest\b",
     r"\bcurrent(ly)?\b",
     r"\brecent(ly)?\b",

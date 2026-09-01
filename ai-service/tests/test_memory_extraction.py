@@ -7,11 +7,11 @@ from app.models.ai_execute import AiExecuteResponse
 @pytest.fixture
 def agent_graph():
     rag_service = MagicMock()
-    spring_gateway_client = MagicMock()
-    rag_service.spring_gateway_client = spring_gateway_client
+    llm_gateway = MagicMock()
+    rag_service.llm_gateway = llm_gateway
     
     graph = AgentGraph(rag_service)
-    return graph, rag_service, spring_gateway_client
+    return graph, rag_service, llm_gateway
 
 def test_deterministic_framework(agent_graph):
     graph, rag, gateway = agent_graph

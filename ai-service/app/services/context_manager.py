@@ -145,9 +145,17 @@ class ContextManagerService:
                     for m in reversed(turn_msgs):
                         selected_messages.append(m)
                 else:
-                    # Do not split the turn or truncate partially. 
-                    # Drop the rest and yield the remaining budget to evidence.
-                    excluded_messages += (i + 1) + len(turn_msgs)
+                    if len(turn_msgs) == 1 and remaining_budget - history_tokens > 4:
+                        tokens_to_keep = remaining_budget - history_tokens
+                        trunc_content = self._truncate_to_tokens(turn_msgs[0].get('content', ''), tokens_to_keep)
+                        if trunc_content:
+                            trunc_tokens = self.token_counter.count(trunc_content)
+                            if history_tokens + trunc_tokens <= remaining_budget:
+                                history_tokens += trunc_tokens
+                                new_m = dict(turn_msgs[0])
+                                new_m['content'] = trunc_content
+                                selected_messages.append(new_m)
+                    excluded_messages += (i + 1)
                     break
                     
         selected_messages.reverse()

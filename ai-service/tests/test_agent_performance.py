@@ -68,14 +68,14 @@ def _make_svc(call_sequence=None, default_response=None):
     svc.prompt_builder.build_user_prompt.return_value = "prompt"
     svc.prompt_builder.build_refinement_prompt.return_value = "refine"
     svc.prompt_builder.system_prompt = "sys"
-    svc.spring_gateway_client = Mock()
+    svc.llm_gateway = Mock()
 
     if call_sequence:
         from itertools import cycle
-        svc.spring_gateway_client.execute_prompt.side_effect = cycle(call_sequence)
+        svc.llm_gateway.execute_prompt.side_effect = cycle(call_sequence)
     else:
         resp = default_response or Mock(content="Answer", provider="mock")
-        svc.spring_gateway_client.execute_prompt.return_value = resp
+        svc.llm_gateway.execute_prompt.return_value = resp
 
     svc.search_similar.return_value = []
     return svc
@@ -209,9 +209,9 @@ def test_perf_two_iterations(mock_web):
     compiled = AgentGraph(svc).build()
 
     def run():
-        svc.spring_gateway_client.execute_prompt.reset_mock(side_effect=True)
+        svc.llm_gateway.execute_prompt.reset_mock(side_effect=True)
         from itertools import cycle
-        svc.spring_gateway_client.execute_prompt.side_effect = cycle([
+        svc.llm_gateway.execute_prompt.side_effect = cycle([
             Mock(content="Refined query", provider="mock"),
             Mock(content=_sufficient_json(), provider="mock"),
             Mock(content="Two-iter answer", provider="mock"),
@@ -247,8 +247,8 @@ def test_perf_three_iterations(mock_web):
     compiled = AgentGraph(svc).build()
 
     def run():
-        svc.spring_gateway_client.execute_prompt.reset_mock(side_effect=True)
-        svc.spring_gateway_client.execute_prompt.side_effect = cycle([
+        svc.llm_gateway.execute_prompt.reset_mock(side_effect=True)
+        svc.llm_gateway.execute_prompt.side_effect = cycle([
             Mock(content="Refined query 1", provider="mock"),
             Mock(content="Refined query 2", provider="mock"),
         ])

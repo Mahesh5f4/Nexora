@@ -14,19 +14,13 @@ def rag_service():
     chunker = CharacterChunker(chunk_size=200, chunk_overlap=20)
     provider = SentenceTransformerEmbeddingProvider()
     embedding_service = EmbeddingService(provider=provider)
-    spring_gateway_client = Mock()
+    llm_gateway = Mock()
     
     service = RAGService(
         chunker=chunker,
         embedding_service=embedding_service,
         vector_store=vector_store,
-        spring_gateway_client=spring_gateway_client
-    )
-    
-    from qdrant_client.models import VectorParams, Distance
-    qdrant_client.create_collection(
-        collection_name=service.vector_store._collection_name,
-        vectors_config=VectorParams(size=384, distance=Distance.COSINE)
+        llm_gateway=llm_gateway
     )
     return service
 
@@ -71,7 +65,7 @@ def test_answer_grounding(rag_service):
     rag_service.index_chunks("doc1", user_id, "The backend uses Spring Boot.", metadata={"filename": "tech.txt"})
     
     # Supported Question
-    rag_service.spring_gateway_client.execute_prompt = MagicMock(return_value=AiExecuteResponse(
+    rag_service.llm_gateway.execute_prompt = MagicMock(return_value=AiExecuteResponse(
         content="The backend uses Spring Boot.", provider="gemini", model="gemini-1.5-pro"
     ))
     
@@ -80,7 +74,7 @@ def test_answer_grounding(rag_service):
     assert len(res1.sources) == 1
     
     # Verify exact prompt built
-    prompt = rag_service.spring_gateway_client.execute_prompt.call_args[0][0].prompt
+    prompt = rag_service.llm_gateway.execute_prompt.call_args[0][0].prompt
     assert "The backend uses Spring Boot." in prompt
     assert "What framework is used?" in prompt
     assert "--- DOCUMENT EVIDENCE 1 ---" in prompt
@@ -89,7 +83,7 @@ def test_unsupported_question(rag_service):
     user_id = "unsupported_user"
     rag_service.index_chunks("doc1", user_id, "The backend uses Spring Boot.", metadata={"filename": "tech.txt"})
     
-    rag_service.spring_gateway_client.execute_prompt = MagicMock(return_value=AiExecuteResponse(
+    rag_service.llm_gateway.execute_prompt = MagicMock(return_value=AiExecuteResponse(
         content="The available documents do not contain enough information.", provider="gemini", model="gemini-1.5-pro"
     ))
     
@@ -103,13 +97,13 @@ def test_empty_retrieval(rag_service):
     res = rag_service.retrieve_and_answer("What is the CEO's name?", user_id)
     assert "I couldn't find relevant information" in res.answer
     assert len(res.sources) == 0
-    rag_service.spring_gateway_client.execute_prompt.assert_not_called()
+    rag_service.llm_gateway.execute_prompt.assert_not_called()
 
 def test_source_consistency(rag_service):
     user_id = "source_user"
     rag_service.index_chunks("doc1", user_id, "Test content.", metadata={"filename": "test.txt"})
     
-    rag_service.spring_gateway_client.execute_prompt = MagicMock(return_value=AiExecuteResponse(
+    rag_service.llm_gateway.execute_prompt = MagicMock(return_value=AiExecuteResponse(
         content="Test content.", provider="gemini", model="gemini-1.5-pro"
     ))
     
@@ -127,13 +121,8 @@ def test_duplicate_context_handling(rag_service):
     # RAG Service needs to deduplicate based on content
     chunks = rag_service.search_similar("Identical content.", user_id, top_k=5)
     
-    # We will implement deduplication logic in rag_service, so chunks should be filtered
-    # Wait, currently it returns both. Let's assert that only 1 chunk makes it into the prompt if we deduplicate.
-    # We will fix rag_service.py to make this pass.
-    # Let's write the assertion assuming it's deduplicated.
-    # Wait, if we deduplicate, `retrieve_and_answer` should build a context with only 1 instance.
-    rag_service.spring_gateway_client.execute_prompt = MagicMock(return_value=AiExecuteResponse(content="ans", provider="1", model="1"))
+    rag_service.llm_gateway.execute_prompt = MagicMock(return_value=AiExecuteResponse(content="ans", provider="1", model="1"))
     rag_service.retrieve_and_answer("Identical content.", user_id)
     
-    prompt = rag_service.spring_gateway_client.execute_prompt.call_args[0][0].prompt
+    prompt = rag_service.llm_gateway.execute_prompt.call_args[0][0].prompt
     assert prompt.count("Identical content.") == 2 # 1 in context, 1 in question

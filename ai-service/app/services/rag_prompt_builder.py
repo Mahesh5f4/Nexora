@@ -255,6 +255,7 @@ class RagPromptBuilder:
                 "\nNote: No evidence was provided. "
                 "You may answer the query using your general knowledge. "
                 "State that your answer is based on general knowledge rather than uploaded evidence. "
+                "Mark all claims as [UNCERTAINTY]. "
                 "If it is a general knowledge question or a simple request, provide a direct, helpful, and natural response.\n"
             )
 

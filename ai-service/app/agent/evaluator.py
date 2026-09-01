@@ -131,14 +131,6 @@ class EvidenceEvaluator:
                 missing_information=[]
             )
 
-        # Fast path: If evidence has meaningful content, immediately treat as SUFFICIENT
-        if any(len(ev.content or "") >= MIN_TOTAL_CONTENT_CHARS for ev in evidence):
-            return EvaluationResult(
-                status=EvaluationStatus.SUFFICIENT,
-                reason="Sufficient evidence retrieved from primary sources.",
-                missing_information=[]
-            )
-
         # Ambiguous — pass to Tier 2
         return None
 
@@ -147,7 +139,7 @@ class EvidenceEvaluator:
     # -------------------------------------------------------------------------
 
     def _tier2_llm(self, query: str, evidence: List[EvidenceItem]) -> EvaluationResult:
-        """Call LLM via Spring Gateway to semantically evaluate evidence quality."""
+        """Call LLM via Gateway to semantically evaluate evidence quality."""
         try:
             evidence_text = self._format_evidence_for_evaluator(evidence)
             user_prompt = (
@@ -168,11 +160,10 @@ class EvidenceEvaluator:
             return self._parse_evaluation_response(response.content)
 
         except Exception as e:
-
-            logger.warning(f"Evidence evaluator LLM call failed: {e}. Falling through to SUFFICIENT.")
+            logger.warning(f"Evidence evaluator LLM call failed: {e}. Conservative fallback to INSUFFICIENT.")
             return EvaluationResult(
-                status=EvaluationStatus.SUFFICIENT,
-                reason="Evidence evaluator temporarily unavailable — assuming evidence is sufficient to proceed.",
+                status=EvaluationStatus.EVALUATOR_UNAVAILABLE,
+                reason=f"Evidence evaluator temporarily unavailable: {e}",
                 missing_information=[]
             )
 
@@ -234,9 +225,8 @@ class EvidenceEvaluator:
 
         except (json.JSONDecodeError, KeyError, TypeError) as e:
             logger.warning(f"Failed to parse evaluator response: {e!r}. Raw: {raw[:200]!r}")
-            # Graceful degradation: If the evaluator outputs non-JSON (like safety warnings), assume sufficient to avoid blocking the user.
             return EvaluationResult(
-                status=EvaluationStatus.SUFFICIENT,
-                reason="Evaluator failed to parse JSON, gracefully assuming evidence is sufficient.",
+                status=EvaluationStatus.EVALUATOR_INVALID_RESPONSE,
+                reason="Evaluator returned an invalid response format.",
                 missing_information=[]
             )

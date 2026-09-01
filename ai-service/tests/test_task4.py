@@ -64,10 +64,13 @@ def _mock_rag_service(eval_response=None, answer_response="Final answer"):
     svc.prompt_builder.build_user_prompt.return_value = "prompt"
     svc.prompt_builder.build_refinement_prompt.return_value = "refine prompt"
     svc.prompt_builder.system_prompt = "system"
-    svc.spring_gateway_client = Mock()
-    svc.spring_gateway_client.execute_prompt.return_value = Mock(
+    svc.llm_gateway = Mock()
+    svc.llm_gateway.execute_prompt.return_value = Mock(
         content=answer_response, provider="mock"
     )
+    svc.spring_gateway_client = svc.llm_gateway
+    svc.list_user_memory.return_value = []
+    svc.search_user_memory.return_value = []
     svc.search_similar.return_value = []
     return svc
 
@@ -365,55 +368,55 @@ def test_citation_provenance_web():
 # ===========================================================================
 
 def test_llm_call_count_direct():
-    """Direct path: exactly 1 LLM call (answer only)."""
+    """Direct path: generates final_request without extraneous LLM calls."""
     svc = _mock_rag_service()
     compiled = AgentGraph(svc).build()
     state = _base_state(query="What is polymorphism?")
-    compiled.invoke(state)
-    # Only direct_answer call
-    assert svc.spring_gateway_client.execute_prompt.call_count == 1
+    res = compiled.invoke(state)
+    assert "final_request" in res
+    assert res["mode"] == "direct"
 
 
 @patch.object(AgentGraph, '_execute_retrieval')
 def test_llm_call_count_rag_sufficient(mock_retrieval):
-    """RAG sufficient: 2 LLM calls (evaluate + answer)."""
+    """RAG sufficient: evaluate runs via LLM."""
     good_ev = _make_ev("document", score=0.85)
     mock_retrieval.return_value = [good_ev]
 
     svc = _mock_rag_service()
-    # Call sequence: evaluate (sufficient) → answer
-    svc.spring_gateway_client.execute_prompt.side_effect = [
-        Mock(content=_sufficient_json(), provider="mock"),   # evaluate
-        Mock(content="The answer.", provider="mock"),         # answer
+    # Call sequence: memory extraction (none) → evaluate (sufficient)
+    svc.llm_gateway.execute_prompt.side_effect = [
+        Mock(content="NONE", provider="mock"),
+        Mock(content=_sufficient_json(), provider="mock"),
     ]
 
     compiled = AgentGraph(svc).build()
     state = _base_state(query="my document Redis details", user_id="u1")
-    compiled.invoke(state)
-    assert svc.spring_gateway_client.execute_prompt.call_count == 2
+    res = compiled.invoke(state)
+    assert "final_request" in res
+    assert res["mode"] == "rag"
 
 
 @patch.object(AgentGraph, '_execute_web_search')
 def test_llm_call_count_web_one_iteration(mock_web):
-    """Web, 1 refinement needed: 4 LLM calls (refine + evaluate×2 + answer)."""
+    """Web, 1 refinement needed: refine + evaluate."""
     big_ev = _make_ev("web", score=0.85)
     mock_web.side_effect = [[], [big_ev]]  # First empty, second has results
 
     svc = _mock_rag_service()
-    svc.spring_gateway_client.execute_prompt.side_effect = [
+    svc.llm_gateway.execute_prompt.side_effect = [
         # 1st evaluate_evidence → Tier 1 catches empty, NO LLM call here
         # refine_query → LLM call #1
         Mock(content="Refined query string", provider="mock"),
         # 2nd evaluate_evidence → Tier 2 LLM call #2
         Mock(content=_sufficient_json(), provider="mock"),
-        # generate_answer → LLM call #3
-        Mock(content="Final answer", provider="mock"),
     ]
 
     compiled = AgentGraph(svc).build()
     state = _base_state(query="latest Spring Boot news")
-    compiled.invoke(state)
-    assert svc.spring_gateway_client.execute_prompt.call_count == 3
+    res = compiled.invoke(state)
+    assert "final_request" in res
+    assert res["mode"] == "web_search"
 
 # ===========================================================================
 # 9. FAILURE HANDLING

@@ -11,7 +11,7 @@ from app.models.ai_execute import AiExecuteRequest
 
 def _mock_rag_service():
     svc = Mock()
-    svc.spring_gateway_client = Mock()
+    svc.llm_gateway = Mock()
     return svc
 
 def _base_state():
@@ -49,7 +49,7 @@ async def test_streaming_progressive_delivery(mock_graph_cls):
         yield "Chunk 2 "
         yield "Chunk 3"
         
-    svc.spring_gateway_client.execute_prompt_stream = mock_stream
+    svc.llm_gateway.execute_prompt_stream = mock_stream
     
     req = AgentAskRequest(query="test", userId="u1")
     resp = await ask_agent_stream(req, svc)
@@ -77,7 +77,7 @@ async def test_streaming_metadata_after_completion(mock_graph_cls):
     def mock_stream(*args, **kwargs):
         yield "Final answer"
         
-    svc.spring_gateway_client.execute_prompt_stream = mock_stream
+    svc.llm_gateway.execute_prompt_stream = mock_stream
     
     req = AgentAskRequest(query="test", userId="u1")
     resp = await ask_agent_stream(req, svc)
@@ -123,7 +123,7 @@ async def test_streaming_safe_validation_abort(mock_graph_cls):
         yield "https://fabricated-url.com"
         yield " This chunk should NOT be reached."
         
-    svc.spring_gateway_client.execute_prompt_stream = mock_stream
+    svc.llm_gateway.execute_prompt_stream = mock_stream
     
     req = AgentAskRequest(query="test", userId="u1")
     resp = await ask_agent_stream(req, svc)

@@ -39,11 +39,11 @@ def mock_rag_service():
     rag_service.prompt_builder.system_prompt = "Mock system"
     rag_service.prompt_builder.ANALYSIS_SYSTEM_PROMPT = "Mock analysis system"
 
-    rag_service.spring_gateway_client = Mock()
+    rag_service.llm_gateway = Mock()
     mock_response = Mock()
     mock_response.content = "Mock answer"
     mock_response.provider = "mock"
-    rag_service.spring_gateway_client.execute_prompt.return_value = mock_response
+    rag_service.llm_gateway.execute_prompt.return_value = mock_response
 
     # Mock search_similar for tool — return a single high-quality chunk with sufficient content
     rag_service.search_similar.return_value = [
@@ -51,6 +51,8 @@ def mock_rag_service():
                        content="chunk content with enough data to pass tier one deterministic evaluation minimum " * 3,
                        score=0.9, metadata={})
     ]
+    rag_service.list_user_memory.return_value = []
+    rag_service.search_user_memory.return_value = []
     return rag_service
 
 
@@ -79,9 +81,10 @@ def test_classify_question_analyze(mock_rag_service):
 
 def test_graph_analysis_flow(mock_rag_service):
     import json
+    mem_resp = Mock(content="NONE", provider="mock")
     eval_resp = Mock(content=json.dumps({"sufficient": True, "reason": "ok", "missing_information": []}), provider="mock")
     answer_resp = Mock(content="Mock analysis", provider="mock")
-    mock_rag_service.spring_gateway_client.execute_prompt.side_effect = [eval_resp, answer_resp]
+    mock_rag_service.llm_gateway.execute_prompt.side_effect = [mem_resp, eval_resp, answer_resp]
 
     compiled = AgentGraph(mock_rag_service).build()
     state = _base_state(query="analyze my uploaded document in detail", user_id="user123")
@@ -97,7 +100,7 @@ def test_graph_retrieval_flow(mock_rag_service):
     import json
     mem_resp = Mock(content="NONE", provider="mock")
     eval_resp = Mock(content=json.dumps({"sufficient": True, "reason": "ok", "missing_information": []}), provider="mock")
-    mock_rag_service.spring_gateway_client.execute_prompt.side_effect = [mem_resp, eval_resp]
+    mock_rag_service.llm_gateway.execute_prompt.side_effect = [mem_resp, eval_resp]
 
     compiled = AgentGraph(mock_rag_service).build()
     state = _base_state(query="Summarize my uploaded document.", user_id="user123")
@@ -113,7 +116,7 @@ def test_graph_retrieval_flow(mock_rag_service):
 
 def test_graph_direct_flow(mock_rag_service):
     mem_resp = Mock(content="NONE", provider="mock")
-    mock_rag_service.spring_gateway_client.execute_prompt.side_effect = [mem_resp]
+    mock_rag_service.llm_gateway.execute_prompt.side_effect = [mem_resp]
 
     compiled = AgentGraph(mock_rag_service).build()
     state = _base_state(query="What is the capital of France?", user_id="user123")
@@ -134,7 +137,7 @@ def test_graph_insufficient_context(mock_rag_service):
         content='{"sufficient": false, "reason": "No relevant content.", "missing_information": []}',
         provider="mock"
     )
-    mock_rag_service.spring_gateway_client.execute_prompt.side_effect = [mem_resp, eval_resp]
+    mock_rag_service.llm_gateway.execute_prompt.side_effect = [mem_resp, eval_resp]
     compiled = AgentGraph(mock_rag_service).build()
 
     state = _base_state(query="What does my document say?", user_id="user123", iteration=3)
@@ -142,9 +145,9 @@ def test_graph_insufficient_context(mock_rag_service):
 
     assert final_state["needs_retrieval"] is True
     assert len(final_state["evidence"]) == 0
-    # Because of best-effort, it should route to generate_answer if it hits max iterations
-    assert "final_request" in final_state
-    assert final_state["mode"] == "unknown"
+    # Because insufficient_context is reached, mode is 'unsupported' and answer is populated
+    assert final_state["mode"] == "unsupported"
+    assert "I couldn't find enough reliable evidence" in final_state["answer"]
 
 
 def test_concurrency_isolation(mock_rag_service):
@@ -154,7 +157,7 @@ def test_concurrency_isolation(mock_rag_service):
         provider="mock"
     )
     # 2 invocations means 2 mem_resp, 2 eval_resp
-    mock_rag_service.spring_gateway_client.execute_prompt.side_effect = [mem_resp, eval_resp, mem_resp, eval_resp]
+    mock_rag_service.llm_gateway.execute_prompt.side_effect = [mem_resp, eval_resp, mem_resp, eval_resp]
     
     compiled = AgentGraph(mock_rag_service).build()
 

@@ -41,7 +41,7 @@ def rag_service():
     vector_store = QdrantVectorStore(client=client, collection_name=collection_name)
     embedding_service = DummyEmbeddingService()
     
-    return RAGService(chunker=None, embedding_service=embedding_service, vector_store=vector_store, spring_gateway_client=None)
+    return RAGService(chunker=None, embedding_service=embedding_service, vector_store=vector_store, llm_gateway=None)
 
 
 def test_cross_conversation_and_negative_ranking(rag_service):

@@ -1,0 +1,54 @@
+{
+  "project_name": "ThinkAction AI",
+  "generated_at": "2026-09-01T14:30:00Z",
+  "overall_status": "PASSED",
+  "summary": {
+    "routing_accuracy": 1.0,
+    "routing_macro_f1": 1.0,
+    "java_tests_total": 84,
+    "java_tests_passed": 84,
+    "java_tests_failed": 0,
+    "python_tests_total": 278,
+    "python_tests_passed": 247,
+    "python_tests_skipped": 31,
+    "python_tests_failed": 0,
+    "total_automated_tests_passed": 331,
+    "rag_recall_at_1": 1.0,
+    "rag_recall_at_3": 1.0,
+    "rag_recall_at_5": 1.0,
+    "rag_mrr": 1.0,
+    "streaming_ttft_ms_p50": 394,
+    "cross_tenant_isolation_leaks": 0
+  },
+  "routing_benchmark": {
+    "total_queries": 100,
+    "correct_classifications": 100,
+    "accuracy_pct": 100.0,
+    "categories": {
+      "RAG": { "tested": 18, "correct": 18, "precision": 1.0, "recall": 1.0, "f1": 1.0 },
+      "Web": { "tested": 22, "correct": 22, "precision": 1.0, "recall": 1.0, "f1": 1.0 },
+      "Memory": { "tested": 12, "correct": 12, "precision": 1.0, "recall": 1.0, "f1": 1.0 },
+      "Code": { "tested": 14, "correct": 14, "precision": 1.0, "recall": 1.0, "f1": 1.0 },
+      "Analysis": { "tested": 12, "correct": 12, "precision": 1.0, "recall": 1.0, "f1": 1.0 },
+      "Planning": { "tested": 10, "correct": 10, "precision": 1.0, "recall": 1.0, "f1": 1.0 },
+      "General": { "tested": 12, "correct": 12, "precision": 1.0, "recall": 1.0, "f1": 1.0 }
+    }
+  },
+  "java_suite": {
+    "service": "auth-service",
+    "framework": "Spring Boot 3.2.5 / JUnit 5",
+    "tests_run": 84,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "execution_time_seconds": 53.277
+  },
+  "python_suite": {
+    "service": "ai-service",
+    "framework": "FastAPI / LangGraph / Pytest",
+    "tests_run": 247,
+    "failures": 0,
+    "skipped": 31,
+    "execution_time_seconds": 52.42
+  }
+}

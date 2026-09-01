@@ -11,21 +11,28 @@ from app.models.evidence import EvidenceItem
 # Helper functions
 def _mock_rag_service():
     svc = Mock()
-    svc.spring_gateway_client = Mock()
+    svc.llm_gateway = Mock()
     return svc
 
 def _base_state(**kwargs):
+    query = kwargs.get("query", "test query")
+    q_lower = query.lower()
     s = {
-        "query": "test query",
+        "query": query,
         "user_id": "test_user",
         "messages": [],
         "evidence": [],
         "search_queries": [],
         "iteration": 1,
         "max_iterations": 3,
+        "mode": "ANALYZE",
         "needs_analysis": True,
         "needs_retrieval": True,
-        "needs_web_search": False
+        "needs_web_search": False,
+        "needs_rag": bool("document" in q_lower or "architecture" in q_lower or kwargs.get("needs_rag", True)),
+        "needs_web": bool("web" in q_lower or kwargs.get("needs_web", kwargs.get("needs_web_search", False))),
+        "needs_memory": bool("my" in q_lower or kwargs.get("needs_memory", False)),
+        "needs_code_retrieval": False
     }
     s.update(kwargs)
     return s
@@ -104,6 +111,8 @@ class TestAnalyzeErrorHandling:
         assert len(state["evidence"]) == 0
         
         # Test routing fallback when no conversation history
+        state["needs_analysis"] = False
+        state["iteration"] = 3
         state["evaluation_status"] = "INSUFFICIENT_EVIDENCE"
         next_node = graph.route_evaluation(state)
         assert next_node == "insufficient_context"
@@ -128,7 +137,7 @@ class TestAnalyzeErrorHandling:
     async def test_provider_503_propagates_non_stream(self, mock_graph_cls):
         """Provider 503 is propagated safely in non-streaming."""
         svc = _mock_rag_service()
-        svc.spring_gateway_client.execute_prompt.side_effect = HTTPException(status_code=503, detail="Unavailable")
+        svc.llm_gateway.execute_prompt.side_effect = HTTPException(status_code=503, detail="Unavailable")
         
         mock_graph = Mock()
         mock_graph_cls.return_value.build.return_value = mock_graph
@@ -149,7 +158,7 @@ class TestAnalyzeErrorHandling:
     async def test_unexpected_exception_mapped_to_500_non_stream(self, mock_graph_cls):
         """Unexpected internal exception is mapped to 500."""
         svc = _mock_rag_service()
-        svc.spring_gateway_client.execute_prompt.side_effect = ValueError("Some weird bug")
+        svc.llm_gateway.execute_prompt.side_effect = ValueError("Some weird bug")
         
         mock_graph = Mock()
         mock_graph_cls.return_value.build.return_value = mock_graph
@@ -181,7 +190,7 @@ class TestAnalyzeErrorHandling:
         }
         
         # LLM returns a hallucinated URL
-        svc.spring_gateway_client.execute_prompt.return_value = AiExecuteResponse(content="See https://fake.com", provider="mock", model="mock")
+        svc.llm_gateway.execute_prompt.return_value = AiExecuteResponse(content="See https://fake.com", provider="mock", model="mock")
         
         req = AgentAskRequest(query="analyze this", userId="u1")
         resp = await ask_agent(req, svc)
@@ -205,7 +214,7 @@ class TestAnalyzeErrorHandling:
         }
         
         # LLM returns empty
-        svc.spring_gateway_client.execute_prompt.return_value = AiExecuteResponse(content="   \n", provider="mock", model="mock")
+        svc.llm_gateway.execute_prompt.return_value = AiExecuteResponse(content="   \n", provider="mock", model="mock")
         
         req = AgentAskRequest(query="analyze this", userId="u1")
         resp = await ask_agent(req, svc)

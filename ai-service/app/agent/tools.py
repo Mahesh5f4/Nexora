@@ -12,7 +12,9 @@ class DocumentRetrievalTool:
         @tool("search_documents")
         def search_documents(query: str, user_id: str, top_k: int = 5, document_id: str = None) -> List[RetrievedChunk]:
             """Search for relevant documents in the vector store."""
-            return self.rag_service.search_similar(query, user_id, top_k, document_id=document_id)
+            if document_id is not None:
+                return self.rag_service.search_similar(query, user_id, top_k, document_id=document_id)
+            return self.rag_service.search_similar(query, user_id, top_k)
             
         return search_documents
 

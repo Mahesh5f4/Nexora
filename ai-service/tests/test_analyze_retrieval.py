@@ -16,6 +16,7 @@ def _mock_rag_service():
     return rag_service
 
 def _base_state(query, **overrides):
+    q_lower = query.lower()
     state = {
         "query": query,
         "user_id": "userA",
@@ -23,9 +24,14 @@ def _base_state(query, **overrides):
         "search_queries": [],
         "iteration": 1,
         "max_iterations": 3,
+        "mode": "ANALYZE",
         "needs_analysis": True,
-        "needs_retrieval": False,
-        "needs_web_search": False,
+        "needs_retrieval": bool("document" in q_lower or "pdf" in q_lower or "this" in q_lower or overrides.get("needs_retrieval")),
+        "needs_web_search": bool("web" in q_lower or "latest" in q_lower or overrides.get("needs_web_search")),
+        "needs_rag": bool("document" in q_lower or "pdf" in q_lower or "this" in q_lower or overrides.get("needs_rag", overrides.get("needs_retrieval", False))),
+        "needs_web": bool("web" in q_lower or "latest" in q_lower or overrides.get("needs_web", overrides.get("needs_web_search", False))),
+        "needs_memory": bool("my" in q_lower or "me" in q_lower or "prefer" in q_lower or overrides.get("needs_memory", False)),
+        "needs_code_retrieval": False
     }
     state.update(overrides)
     return state
@@ -77,7 +83,7 @@ class TestAnalyzeRetrievalPolicy:
         
         assert state["document_retrieval_status"] == "SUCCESS"
         assert any(e.source_type == "document" for e in state["evidence"])
-        graph._execute_retrieval.assert_called_once_with("analyze this document", "userA", top_k=3)
+        graph._execute_retrieval.assert_called_once_with("analyze this document", "userA", 3, None)
 
     def test_analyze_skips_documents_if_no_references(self):
         svc = _mock_rag_service()

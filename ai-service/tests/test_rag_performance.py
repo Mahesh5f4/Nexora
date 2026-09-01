@@ -16,19 +16,13 @@ def rag_service():
     chunker = CharacterChunker(chunk_size=200, chunk_overlap=20)
     provider = SentenceTransformerEmbeddingProvider()
     embedding_service = EmbeddingService(provider=provider)
-    spring_gateway_client = Mock()
+    llm_gateway = Mock()
     
     service = RAGService(
         chunker=chunker,
         embedding_service=embedding_service,
         vector_store=vector_store,
-        spring_gateway_client=spring_gateway_client
-    )
-    
-    from qdrant_client.models import VectorParams, Distance
-    qdrant_client.create_collection(
-        collection_name=service.vector_store._collection_name,
-        vectors_config=VectorParams(size=384, distance=Distance.COSINE)
+        llm_gateway=llm_gateway
     )
     return service
 
@@ -65,18 +59,13 @@ async def test_concurrency_isolation():
     chunker = CharacterChunker(chunk_size=200, chunk_overlap=20)
     provider = SentenceTransformerEmbeddingProvider()
     embedding_service = EmbeddingService(provider=provider)
-    spring_gateway_client = Mock()
+    llm_gateway = Mock()
     
     rag_service = RAGService(
         chunker=chunker,
         embedding_service=embedding_service,
         vector_store=vector_store,
-        spring_gateway_client=spring_gateway_client
-    )
-    from qdrant_client.models import VectorParams, Distance
-    qdrant_client.create_collection(
-        collection_name=rag_service.vector_store._collection_name,
-        vectors_config=VectorParams(size=384, distance=Distance.COSINE)
+        llm_gateway=llm_gateway
     )
     
     rag_service.index_chunks("docA", "userA", "User A content", metadata={"filename": "a.txt"})

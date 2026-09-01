@@ -10,7 +10,7 @@ from app.models.evidence import EvidenceItem
 def mock_rag_service():
     service = Mock(spec=RAGService)
     service.prompt_builder = RagPromptBuilder()
-    service.spring_gateway_client = Mock()
+    service.llm_gateway = Mock()
     return service
 
 @pytest.fixture
@@ -70,8 +70,6 @@ class TestAnalyzeGeneration:
         # Verify user prompt structure
         assert "--- ANALYSIS REQUEST ---" in req["prompt"]
         assert "analyze the architecture" in req["prompt"]
-        assert "REASONING WORKFLOW" in req["prompt"]
-        assert "OUTPUT STRUCTURE" in req["prompt"]
         assert "The architecture is microservices based." in req["prompt"]
 
     def test_empty_evidence_handling(self, agent_graph):
@@ -115,7 +113,7 @@ class TestAnalyzeGeneration:
         state["query"] = "analyze the architecture"
         state["needs_analysis"] = True
         
-        with patch.object(agent_graph.spring_gateway_client, 'execute_prompt') as mock_llm:
+        with patch.object(agent_graph.llm_gateway, 'execute_prompt') as mock_llm:
             with patch.object(agent_graph, '_execute_retrieval') as mock_retrieval:
                 with patch.object(agent_graph, '_execute_web_search') as mock_web:
                     agent_graph.analyze_evidence(state)

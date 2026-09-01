@@ -4,6 +4,7 @@ from app.agent.search_provider import TavilyWebSearchProvider, SearchResult
 from app.agent.tools import WebResearchTool
 from app.agent.state import AgentState
 from app.agent.graph import AgentGraph
+from app.services.rag_service import RAGService
 
 def test_tavily_provider_unconfigured():
     provider = TavilyWebSearchProvider(api_key=None)
@@ -54,7 +55,7 @@ def test_agent_graph_routing_to_web_search():
     rag_service = Mock(spec=RAGService)
     rag_service.prompt_builder = Mock()
     rag_service.prompt_builder.get_system_prompt_for_mode.return_value = "sys"
-    rag_service.spring_gateway_client = Mock()
+    rag_service.llm_gateway = Mock()
     
     graph = AgentGraph(rag_service)
     

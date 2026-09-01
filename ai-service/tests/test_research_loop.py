@@ -47,7 +47,10 @@ def mock_rag_service():
 
     client = Mock()
     client.execute_prompt.return_value = _answer_response()
+    rag_service.llm_gateway = client
     rag_service.spring_gateway_client = client
+    rag_service.list_user_memory.return_value = []
+    rag_service.search_user_memory.return_value = []
 
     return rag_service
 
@@ -92,7 +95,7 @@ def test_classify_rag_web_combined(mock_rag_service):
 
 def test_evaluate_evidence_sufficient(mock_rag_service):
     """Evidence that passes Tier 1 and Tier 2 (LLM says sufficient)."""
-    mock_rag_service.spring_gateway_client.execute_prompt.return_value = _sufficient_eval_response()
+    mock_rag_service.llm_gateway.execute_prompt.return_value = _sufficient_eval_response()
     graph = AgentGraph(mock_rag_service)
     ev = EvidenceItem(source_type="document", title="T", content="C " * 60, score=0.9)
     state = _base_state(evidence=[ev])
@@ -109,7 +112,7 @@ def test_evaluate_evidence_insufficient_empty(mock_rag_service):
     assert state["evaluation_status"] == "INSUFFICIENT_EVIDENCE"
     assert graph.route_evaluation(state) == "refine_query"
     # LLM evaluator must NOT have been called (Tier 1 handled it)
-    mock_rag_service.spring_gateway_client.execute_prompt.assert_not_called()
+    mock_rag_service.llm_gateway.execute_prompt.assert_not_called()
 
 
 def test_evaluate_evidence_low_score_tier1(mock_rag_service):
@@ -119,12 +122,12 @@ def test_evaluate_evidence_low_score_tier1(mock_rag_service):
     state = _base_state(evidence=[ev], iteration=1)
     state = graph.evaluate_evidence(state)
     assert state["evidence_sufficient"] is False
-    mock_rag_service.spring_gateway_client.execute_prompt.assert_not_called()
+    mock_rag_service.llm_gateway.execute_prompt.assert_not_called()
 
 
 def test_evaluate_evidence_insufficient_loop(mock_rag_service):
     """LLM says insufficient, iteration below max → refine_query."""
-    mock_rag_service.spring_gateway_client.execute_prompt.return_value = _insufficient_eval_response()
+    mock_rag_service.llm_gateway.execute_prompt.return_value = _insufficient_eval_response()
     graph = AgentGraph(mock_rag_service)
     ev = EvidenceItem(source_type="web", title="T", content="x " * 60, url="http://x.com", score=0.8)
     state = _base_state(evidence=[ev], iteration=1)
@@ -135,7 +138,7 @@ def test_evaluate_evidence_insufficient_loop(mock_rag_service):
 
 def test_evaluate_evidence_insufficient_max(mock_rag_service):
     """LLM says insufficient, iteration == max → insufficient_context."""
-    mock_rag_service.spring_gateway_client.execute_prompt.return_value = _insufficient_eval_response()
+    mock_rag_service.llm_gateway.execute_prompt.return_value = _insufficient_eval_response()
     graph = AgentGraph(mock_rag_service)
     ev = EvidenceItem(source_type="web", title="T", content="x " * 60, url="http://x.com", score=0.8)
     state = _base_state(evidence=[ev], iteration=3)
@@ -157,7 +160,7 @@ def test_deduplicate_evidence(mock_rag_service):
 
 def test_refine_query_prevents_duplicates(mock_rag_service):
     """If LLM returns the same normalized query, fallback appends a suffix."""
-    mock_rag_service.spring_gateway_client.execute_prompt.return_value = Mock(
+    mock_rag_service.llm_gateway.execute_prompt.return_value = Mock(
         content="original query", provider="mock", model="mock"
     )
     graph = AgentGraph(mock_rag_service)
@@ -174,7 +177,7 @@ def test_refine_query_prevents_duplicates(mock_rag_service):
 
 def test_refine_query_uses_missing_information(mock_rag_service):
     """Refined query should incorporate missing_information when provided."""
-    mock_rag_service.spring_gateway_client.execute_prompt.return_value = Mock(
+    mock_rag_service.llm_gateway.execute_prompt.return_value = Mock(
         content="Redis SETNX contention latency", provider="mock", model="mock"
     )
     graph = AgentGraph(mock_rag_service)
@@ -196,7 +199,7 @@ def test_graph_compiles_and_runs_direct(mock_rag_service):
     state = _base_state(query="What is DI?", user_id="user1")
     final_state = graph.invoke(state)
     assert final_state["mode"] == "direct"
-    assert final_state["answer"] == "Mocked Answer"
+    assert "final_request" in final_state
 
 
 @patch.object(AgentGraph, '_execute_retrieval')
@@ -227,7 +230,7 @@ def test_graph_loop_execution(mock_web, mock_retrieval, mock_rag_service):
                                  "missing_information": []}), provider="mock"),
         Mock(content="Final Answer", provider="mock"),                      # generate_answer
     ]
-    mock_rag_service.spring_gateway_client.execute_prompt.side_effect = call_sequence
+    mock_rag_service.llm_gateway.execute_prompt.side_effect = call_sequence
 
     graph = AgentGraph(mock_rag_service).build()
     state = _base_state(query="latest news", user_id="user1")

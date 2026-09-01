@@ -193,8 +193,15 @@ _FACTUAL_INDICATORS = [
 ]
 
 _CONCEPTUAL_INDICATORS = [
-    r"\bhow (to|do|does|can|should)\b",
+    r"\bhow (to|do|does|can|should|work)\b",
     r"\bexplain\b",
+    r"\bdescribe\b",
+    r"\bdefine\b",
+    r"\bdefinition of\b",
+    r"\bmeaning of\b",
+    r"\bwhat is\b",
+    r"\bwhat are\b",
+    r"\bwhat does .+ mean\b",
     r"\bwhat is the (difference|meaning|definition)\b",
     r"\btutorial\b",
     r"\bhelp me (understand|learn)\b",
@@ -284,15 +291,15 @@ class AgentGraph:
 
         # 2. Mode-specific defaults & overrides
         needs_llm = True
-        needs_rag = has_rag_intent or state.get("force_rag", False)
-        needs_web = has_web_intent or state.get("needs_web_search", False)
+        needs_rag = bool(has_rag_intent or state.get("force_rag") or state.get("needs_retrieval"))
+        needs_web = bool(has_web_intent or state.get("needs_web_search"))
         needs_memory = bool(has_mem_intent)
         
         # Defensive override: If the user is talking about themselves/memory, IGNORE forced web search
         if needs_memory and not has_web_intent:
             needs_web = False
-        needs_code = has_code_intent
-        needs_analysis = has_analysis_intent
+        needs_code = bool(has_code_intent)
+        needs_analysis = bool(has_analysis_intent)
 
         if mode == "CHAT":
             # Chat is minimal friction. Only retrieve if explicit intent.
@@ -368,7 +375,7 @@ class AgentGraph:
             needs_multi_source = False
         else:
             # Determine if multiple sources are required
-            sources_count = sum([needs_rag, needs_web, needs_memory, needs_code])
+            sources_count = sum([int(bool(needs_rag)), int(bool(needs_web)), int(bool(needs_memory)), int(bool(needs_code))])
             needs_multi_source = sources_count > 1
 
         state["needs_llm"] = needs_llm
@@ -432,15 +439,18 @@ class AgentGraph:
         # 1. Fetch all existing memories for this user
         existing_memories = []
         try:
-            existing_memories = self.rag_service.list_user_memory(user_id)
-            state["user_memories"] = [m["content"] for m in existing_memories]
+            res = self.rag_service.list_user_memory(user_id)
+            if isinstance(res, list):
+                existing_memories = res
+            state["user_memories"] = [m["content"] for m in existing_memories if isinstance(m, dict) and "content" in m]
         except Exception as e:
             logger.error(f"Failed to list user memories: {e}")
+            existing_memories = []
             state["user_memories"] = []
             
         # 2. Extract facts from personal statements or explicit memory intents
         has_personal_fact_signal = bool(re.search(
-            r'\b(i am|i\'m|my goal|my favorite|i prefer|i like|i love|i work|i live|my name|i use|i study|i plan|i want to|remember|my stack|my experience|my background|my job|my role|my company|my project)\b',
+            r'\b(i|i\'m|my|me|mine|we|our|remember|favorite|prefer|preferred|stack|background|experience|goals?|interests?)\b',
             query,
             re.IGNORECASE
         ))
@@ -449,10 +459,42 @@ class AgentGraph:
             state["memory_status"] = "SKIPPED"
             return state
             
+        # Fast-path: Check deterministic patterns first (zero LLM latency/cost)
+        deterministic_fact = None
+        fav_fw = re.search(r'my favorite framework is\s+([^.]+)', query, re.IGNORECASE)
+        if fav_fw:
+            deterministic_fact = f"User's favorite framework is {fav_fw.group(1).strip()}."
+            
+        fav_lang = re.search(r'my favorite programming language is\s+([^.]+)', query, re.IGNORECASE)
+        if fav_lang:
+            deterministic_fact = f"User's favorite programming language is {fav_lang.group(1).strip()}."
+            
+        fav_db = re.search(r'my preferred database is\s+([^.]+)', query, re.IGNORECASE)
+        if fav_db:
+            deterministic_fact = f"User's favorite database is {fav_db.group(1).strip()}."
+            
+        pref_m = re.search(r'^i prefer\s+([^.]+)', query.strip(), re.IGNORECASE)
+        if pref_m:
+            deterministic_fact = f"User explicitly stated: I prefer {pref_m.group(1).strip()}"
+            
+        if deterministic_fact:
+            try:
+                self.rag_service.add_user_memory(user_id, deterministic_fact)
+                if deterministic_fact not in state["user_memories"]:
+                    state["user_memories"].append(deterministic_fact)
+                state["memory_status"] = "SAVED"
+                return state
+            except Exception as e:
+                logger.error(f"Failed to save deterministic user memory: {e}")
+                state["memory_status"] = "FAILED"
+                return state
+
         # 3. Build smart deduplication prompt
         memories_str = "None"
-        if existing_memories:
-            memories_str = "\n".join([f"- [ID: {m['id']}] {m['content']}" for m in existing_memories])
+        if existing_memories and isinstance(existing_memories, list):
+            memories_list = [f"- [ID: {m['id']}] {m['content']}" for m in existing_memories if isinstance(m, dict) and 'id' in m and 'content' in m]
+            if memories_list:
+                memories_str = "\n".join(memories_list)
             
         prompt = f"""User message: '{query}'
 
@@ -479,10 +521,15 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
         
         try:
             response = self.llm_gateway.execute_prompt(ai_request)
-            content = response.content.strip()
+            raw_content = getattr(response, "content", response)
+            content = str(raw_content).strip() if raw_content is not None else ""
             
             # Clean thinking tags and markdown wrappers
             cleaned = re.sub(r'<think>[\s\S]*?</think>', '', content, flags=re.IGNORECASE).strip()
+            
+            if cleaned.upper() in ["NONE", "NULL", "NO FACT", ""]:
+                state["memory_status"] = "SKIPPED"
+                return state
             
             result = None
             # 1. Direct JSON parse
@@ -530,7 +577,11 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
                         extracted_text = f"User {extracted_text}"
                     result = {"extracted_fact": extracted_text, "delete_ids": []}
 
-            # 6. Multi-fact and heuristic extraction fallback
+            # 6. Direct string fallback if LLM returned plain text fact
+            if result is None and cleaned and not cleaned.startswith("{") and not cleaned.startswith("["):
+                result = {"extracted_fact": cleaned, "delete_ids": []}
+
+            # 7. Multi-fact and heuristic extraction fallback
             fact = result.get("extracted_fact") if result else None
             facts_to_save = []
             if fact and isinstance(fact, str) and fact.lower() not in ["none", "null"]:
@@ -587,7 +638,7 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
             state["memory_status"] = "FAILED"
         except Exception as e:
             err_str = str(e).lower()
-            if any(x in err_str for x in ["429", "503", "500", "502", "504", "timeout", "connection"]):
+            if any(x in err_str for x in ["429", "503", "500", "502", "504", "timeout", "connection", "unavailable", "too many requests"]):
                 state["memory_status"] = "LLM_UNAVAILABLE"
                 logger.warning(f"LLM Unavailable during memory extraction: {e}")
             else:
@@ -929,13 +980,12 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
             return "analyze_evidence" if state.get("needs_analysis") else "generate_answer"
         elif status == "INSUFFICIENT_EVIDENCE":
             if state.get("needs_analysis"):
-                # BUG 3 FIX: Analyze agent must NEVER hit insufficient_context.
+                # Analyze agent must NEVER hit insufficient_context.
                 # The analyze_evidence node and system prompt are designed to handle
-                # vague/no-evidence queries gracefully (request clarification or reason
-                # from what's available). Always route to analyze_evidence.
+                # vague/no-evidence queries gracefully. Always route to analyze_evidence.
                 return "analyze_evidence"
             if state["iteration"] >= state["max_iterations"]:
-                return "generate_answer"  # Best effort instead of giving up entirely
+                return "insufficient_context"
             return "refine_query"
         else:
             # Evaluator infrastructure failure — best-effort generate with available evidence
@@ -1141,7 +1191,7 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
         # 2. Sort selected by priority (memory > document > web) for consistent ContextManager presentation
         sorted_evidence = self._sort_evidence_by_priority(selected_evidence)
 
-        system_prompt = self.prompt_builder.get_system_prompt_for_mode(state.get("mode"))
+        system_prompt = self.prompt_builder.ANALYSIS_SYSTEM_PROMPT
 
         # Inject memory directly into system prompt
         if state.get("user_memories"):

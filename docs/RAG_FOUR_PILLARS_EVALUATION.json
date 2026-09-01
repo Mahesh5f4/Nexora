@@ -1,0 +1,223 @@
+{
+  "evaluation_title": "ThinkAction AI \u2014 4-Pillar RAG Evaluation Benchmark",
+  "executed_at": "2026-09-01T09:12:47Z",
+  "total_execution_seconds": 0.46,
+  "pillar_1_retrieval_quality": {
+    "recall_at_1": 1.0,
+    "recall_at_3": 1.0,
+    "recall_at_5": 1.0,
+    "precision_at_1": 1.0,
+    "precision_at_3": 0.3333,
+    "precision_at_5": 0.2,
+    "mrr": 1.0,
+    "ndcg_at_3": 1.0,
+    "ndcg_at_5": 1.0,
+    "total_queries_evaluated": 10,
+    "queries": [
+      {
+        "query": "How does the system prevent deadlocks in distributed locking?",
+        "target_doc": "arch_redis",
+        "top_retrieved": [
+          "arch_redis",
+          "arch_rabbitmq",
+          "infra_k8s"
+        ],
+        "rank": 1,
+        "score": 0.6191584751073149
+      },
+      {
+        "query": "What message broker handles notification service retries?",
+        "target_doc": "arch_rabbitmq",
+        "top_retrieved": [
+          "arch_rabbitmq",
+          "arch_redis",
+          "policy_sla"
+        ],
+        "rank": 1,
+        "score": 0.6331977132777342
+      },
+      {
+        "query": "Which database is used for transactional event management?",
+        "target_doc": "arch_db_mysql",
+        "top_retrieved": [
+          "arch_db_mysql",
+          "sec_rbac",
+          "arch_rabbitmq"
+        ],
+        "rank": 1,
+        "score": 0.6529358115266902
+      },
+      {
+        "query": "How are JWT tokens signed and what is the key length?",
+        "target_doc": "sec_jwt",
+        "top_retrieved": [
+          "sec_jwt",
+          "infra_streaming",
+          "sec_tenant_isolation"
+        ],
+        "rank": 1,
+        "score": 0.6353712820739761
+      },
+      {
+        "query": "What permissions does an EVENT_ORGANIZER possess in RBAC?",
+        "target_doc": "sec_rbac",
+        "top_retrieved": [
+          "sec_rbac",
+          "arch_db_mysql",
+          "arch_rabbitmq"
+        ],
+        "rank": 1,
+        "score": 0.8130074907217011
+      },
+      {
+        "query": "How does Qdrant enforce multi-tenant isolation?",
+        "target_doc": "sec_tenant_isolation",
+        "top_retrieved": [
+          "sec_tenant_isolation",
+          "arch_redis",
+          "sec_rbac"
+        ],
+        "rank": 1,
+        "score": 0.5808383175139763
+      },
+      {
+        "query": "What metrics trigger Kubernetes Horizontal Pod Autoscalers?",
+        "target_doc": "infra_k8s",
+        "top_retrieved": [
+          "infra_k8s",
+          "arch_redis",
+          "policy_sla"
+        ],
+        "rank": 1,
+        "score": 0.6947687347107916
+      },
+      {
+        "query": "How does Nginx handle SSE real-time streaming buffers?",
+        "target_doc": "infra_streaming",
+        "top_retrieved": [
+          "infra_streaming",
+          "arch_redis",
+          "policy_sla"
+        ],
+        "rank": 1,
+        "score": 0.5526805052976077
+      },
+      {
+        "query": "What is the data deletion timeline under GDPR Article 17?",
+        "target_doc": "policy_gdpr",
+        "top_retrieved": [
+          "policy_gdpr",
+          "arch_db_mysql",
+          "policy_sla"
+        ],
+        "rank": 1,
+        "score": 0.6352044721777367
+      },
+      {
+        "query": "What is the uptime guarantee and P1 incident SLA?",
+        "target_doc": "policy_sla",
+        "top_retrieved": [
+          "policy_sla",
+          "arch_redis",
+          "arch_rabbitmq"
+        ],
+        "rank": 1,
+        "score": 0.6520169561682378
+      }
+    ]
+  },
+  "pillar_2_generation_quality": {
+    "avg_rouge1_f1": 0.7082,
+    "avg_rouge2_f1": 0.5399,
+    "avg_rougeL_f1": 0.6686,
+    "avg_entity_coverage": 1.0,
+    "format_adherence_rate": 1.0,
+    "cases": [
+      {
+        "query": "How is distributed locking implemented and what is the lease time?",
+        "is_supported": true,
+        "generated": "The platform implements distributed locking across all transactional microservices using Redisson and Redis SETNX with a 10-second automatic lease expiration to prevent deadlocks.",
+        "gold": "Distributed locking is implemented using Redisson and Redis SETNX with an automatic 10-second lease expiration to prevent deadlocks.",
+        "rouge": {
+          "rouge1": 0.7442,
+          "rouge2": 0.5366,
+          "rougeL": 0.6977
+        },
+        "entity_coverage": 1.0
+      },
+      {
+        "query": "What algorithm and key size sign the system's JWT authentication tokens?",
+        "is_supported": true,
+        "generated": "Authentication is managed via stateless JWT tokens signed using RS256 with an asymmetric 2048-bit key pair. Access tokens expire in 15 minutes, while refresh tokens reside in HTTP-only cookies for 7 days.",
+        "gold": "JWT tokens are signed using RS256 with an asymmetric 2048-bit key pair, with 15-minute access token expiration.",
+        "rouge": {
+          "rouge1": 0.5714,
+          "rouge2": 0.3922,
+          "rougeL": 0.4906
+        },
+        "entity_coverage": 1.0
+      },
+      {
+        "query": "What is the GDPR data erasure policy timeline?",
+        "is_supported": true,
+        "generated": "Under compliance policy GDPR Article 17, when a user requests account deletion, all personal profile records, stored vector memories, and uploaded document chunks are hard-deleted within 24 hours.",
+        "gold": "Under GDPR Article 17, all personal profile records, stored vector memories, and uploaded document chunks are hard-deleted within 24 hours.",
+        "rouge": {
+          "rouge1": 0.84,
+          "rouge2": 0.75,
+          "rougeL": 0.84
+        },
+        "entity_coverage": 1.0
+      },
+      {
+        "query": "What is the pricing model for corporate enterprise tier subscriptions?",
+        "is_supported": false,
+        "generated": "I couldn't find enough reliable evidence to answer this confidently based on the available documents.",
+        "gold": "I couldn't find enough reliable evidence in the provided documents to answer the pricing model for corporate enterprise tier subscriptions.",
+        "rouge": {
+          "rouge1": 0.6111,
+          "rouge2": 0.4,
+          "rougeL": 0.5405
+        },
+        "entity_coverage": 1.0
+      },
+      {
+        "query": "Who is the primary cloud provider and data center region for the database backup replication?",
+        "is_supported": false,
+        "generated": "I couldn't find enough reliable evidence to answer this confidently based on the available documents.",
+        "gold": "I couldn't find enough reliable evidence to answer this question from the indexed documents.",
+        "rouge": {
+          "rouge1": 0.7742,
+          "rouge2": 0.6207,
+          "rougeL": 0.7742
+        },
+        "entity_coverage": 1.0
+      }
+    ]
+  },
+  "pillar_3_grounding_and_faithfulness": {
+    "faithfulness_score": 1.0,
+    "citation_precision": 1.0,
+    "hallucination_rejection_rate": 1.0,
+    "adversarial_injection_defense": "PASSED (100% Contained)"
+  },
+  "pillar_4_system_performance": {
+    "embedding_latency_ms": {
+      "avg": 0.0,
+      "p50": 0.0,
+      "p95": 0.01
+    },
+    "vector_search_latency_ms": {
+      "avg": 1.06,
+      "p50": 0.62,
+      "p95": 0.94
+    },
+    "context_assembly_latency_ms": {
+      "avg": 0.01,
+      "p50": 0.01,
+      "p95": 0.02
+    },
+    "cross_tenant_isolation_leaks": 0,
+    "isolation_status": "PERFECT (0 Leaks)"
+  }
+}

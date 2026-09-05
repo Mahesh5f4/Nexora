@@ -113,6 +113,7 @@ const AgentInput = ({ agentType, input, setInput, submit, isLoading, handleStop 
       name: a.name,
       size: a.size,
       type: a.type,
+      content: a.content || null,
       dataUrl: a.dataUrl || null,
     }));
 

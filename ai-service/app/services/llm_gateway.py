@@ -103,14 +103,13 @@ class LLMGateway:
             self._init_llm(api_key)
 
     MODELS = [
-        "google/gemma-4-31b-it:free",
+        "minimax/minimax-m2.7:free",
+        "openrouter/auto",
         "minimax/minimax-m3:free",
+        "google/gemma-4-31b-it:free",
         "google/gemma-4-26b-a4b-it:free",
         "nvidia/nemotron-3-super-120b-a12b:free",
-        "inclusionai/ling-3.0-flash-fin:free",
-        "nvidia/nemotron-3.5-lightning:free",
-        "cohere/north-mini-code:free",
-        "openrouter/auto"
+        "z-ai/glm-5.2:free"
     ]
 
     def _init_llm(self, api_key: str):

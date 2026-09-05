@@ -23,7 +23,7 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 @router.post("/ask", response_model=AgentAskResponse)
-async def ask_agent(
+def ask_agent(
     request: AgentAskRequest,
     rag_service: RAGService = Depends(get_rag_service),
     graph = Depends(get_compiled_graph)
@@ -136,7 +136,7 @@ async def ask_agent(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/execute")
-async def execute_prompt(
+def execute_prompt(
     request: AiExecuteRequest,
     rag_service: RAGService = Depends(get_rag_service)
 ):
@@ -148,7 +148,7 @@ async def execute_prompt(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/stream")
-async def ask_agent_stream(
+def ask_agent_stream(
     request: AgentAskRequest,
     rag_service: RAGService = Depends(get_rag_service),
     graph = Depends(get_compiled_graph)
@@ -306,9 +306,9 @@ async def ask_agent_stream(
                             for event_type, chunk in rag_service.llm_gateway.execute_prompt_stream(ai_req):
                                 if chunk:
                                     if event_type == "thinking":
-                                        yield f"event: thinking\ndata: {json.dumps({'text': chunk})}\n\n"
+                                        yield f"event: thinking\ndata: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
                                     else:
-                                        yield f"event: token\ndata: {json.dumps({'text': chunk})}\n\n"
+                                        yield f"event: token\ndata: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
                         except Exception as gen_err:
                             logger.error(f"LLM generation stream failed: {gen_err}")
                             web_sources = [ev for ev in final_state.get("evidence", []) if ev.source_type == "web"]
@@ -320,17 +320,17 @@ async def ask_agent_stream(
                                         fallback += f"{ev.content[:300]}...\n\n"
                             else:
                                 fallback = "⚠️ The AI model is temporarily unavailable. Please try again in a moment."
-                            yield f"event: token\ndata: {json.dumps({'text': fallback})}\n\n"
+                            yield f"event: token\ndata: {json.dumps({'text': fallback}, ensure_ascii=False)}\n\n"
                 else:
                     if final_state.get("answer"):
                         yield f"event: answer_started\ndata: {{}}\n\n"
-                        yield f"event: token\ndata: {json.dumps({'text': final_state['answer']})}\n\n"
+                        yield f"event: token\ndata: {json.dumps({'text': final_state['answer']}, ensure_ascii=False)}\n\n"
 
                 # Complete any running generation activity
                 for act in final_state.get("activity_events", []):
                     if act.get("stage") == "generation" and act.get("status") == "running":
                         act["status"] = "completed"
-                        yield f"event: activity\ndata: {json.dumps(act)}\n\n"
+                        yield f"event: activity\ndata: {json.dumps(act, ensure_ascii=False)}\n\n"
 
                 yield f"event: answer_completed\ndata: {{}}\n\n"
                 yield f"event: request_completed\ndata: {{}}\n\n"
@@ -338,17 +338,18 @@ async def ask_agent_stream(
 
             except HTTPException as e:
                 logger.error(f"Stream generation HTTP error: {e.detail}")
-                yield f"event: error\ndata: {json.dumps({'error': str(e.detail), 'status': e.status_code})}\n\n"
+                yield f"event: error\ndata: {json.dumps({'error': str(e.detail), 'status': e.status_code}, ensure_ascii=False)}\n\n"
                 yield f"event: done\ndata: {{}}\n\n"
             except Exception as e:
                 logger.error(f"Stream generation error: {e}")
-                yield f"event: error\ndata: {json.dumps({'error': str(e), 'status': 500})}\n\n"
+                yield f"event: error\ndata: {json.dumps({'error': str(e), 'status': 500}, ensure_ascii=False)}\n\n"
                 yield f"event: done\ndata: {{}}\n\n"
 
         return StreamingResponse(
             event_generator(), 
-            media_type="text/event-stream",
+            media_type="text/event-stream; charset=utf-8",
             headers={
+                "Content-Type": "text/event-stream; charset=utf-8",
                 "Cache-Control": "no-cache",
                 "Connection": "keep-alive",
                 "X-Accel-Buffering": "no"

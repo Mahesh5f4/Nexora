@@ -485,7 +485,7 @@ class AgentGraph:
         if name_m and not deterministic_fact:
             deterministic_fact = f"User's name is {name_m.group(1).strip().title()}."
             
-        if deterministic_fact:
+        if deterministic_fact and len(query.strip().split()) <= 10:
             try:
                 self.rag_service.add_user_memory(user_id, deterministic_fact)
                 if deterministic_fact not in state["user_memories"]:
@@ -529,6 +529,10 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
   "delete_ids": []
 }}"""
         
+        facts_to_save = [deterministic_fact] if deterministic_fact else []
+        delete_ids = []
+        llm_success = False
+
         ai_request = AiExecuteRequest(
             prompt=prompt,
             systemPrompt="You are an autonomous long-term user memory engine. Output ONLY a valid JSON object. Do not include markdown explanation or reasoning.",
@@ -543,142 +547,158 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
             
             # Clean thinking tags and markdown wrappers
             cleaned = re.sub(r'<think>[\s\S]*?</think>', '', content, flags=re.IGNORECASE).strip()
+            llm_success = True
             
-            if cleaned.upper() in ["NONE", "NULL", "NO FACT", ""]:
-                state["memory_status"] = "SKIPPED"
-                return state
-            
-            result = None
-            # 1. Direct JSON parse
-            try:
-                result = json.loads(cleaned)
-            except Exception:
-                pass
-                
-            # 2. Markdown json code block
-            if result is None and "```json" in cleaned:
+            if cleaned.upper() not in ["NONE", "NULL", "NO FACT", ""]:
+                result = None
+                # 1. Direct JSON parse
                 try:
-                    block = cleaned.split("```json")[1].split("```")[0].strip()
-                    result = json.loads(block)
+                    result = json.loads(cleaned)
                 except Exception:
                     pass
                     
-            if result is None and "```" in cleaned:
-                try:
-                    block = cleaned.split("```")[1].split("```")[0].strip()
-                    result = json.loads(block)
-                except Exception:
-                    pass
-                    
-            # 3. Match explicit JSON object structure
-            if result is None:
-                json_match = re.search(r'\{\s*"(?:facts|extracted_fact)"[\s\S]*?\}', cleaned)
-                if json_match:
+                # 2. Markdown json code block
+                if result is None and "```json" in cleaned:
                     try:
-                        result = json.loads(json_match.group(0))
+                        block = cleaned.split("```json")[1].split("```")[0].strip()
+                        result = json.loads(block)
                     except Exception:
                         pass
                         
-            # 4. Fallback regex to extract fact string directly from JSON keys
-            if result is None:
-                fact_match = re.search(r'"extracted_fact"\s*:\s*"([^"]+)"', cleaned)
-                if fact_match:
-                    result = {"extracted_fact": fact_match.group(1), "facts": [fact_match.group(1)], "delete_ids": []}
-            
-            # 5. Fallback regex to extract from thinking/prose output (e.g. 'Fact: User loves SpringBoot')
-            if result is None:
-                prose_fact_match = re.search(r'(?:Fact|Extracted Fact|User Fact):\s*(?:User\s+)?([^\n]+)', cleaned, re.IGNORECASE)
-                if prose_fact_match:
-                    extracted_text = prose_fact_match.group(1).strip().rstrip(".,")
-                    if not extracted_text.lower().startswith("user"):
-                        extracted_text = f"User {extracted_text}"
-                    result = {"extracted_fact": extracted_text, "facts": [extracted_text], "delete_ids": []}
+                if result is None and "```" in cleaned:
+                    try:
+                        block = cleaned.split("```")[1].split("```")[0].strip()
+                        result = json.loads(block)
+                    except Exception:
+                        pass
+                        
+                # 3. Match explicit JSON object structure
+                if result is None:
+                    json_match = re.search(r'\{\s*"(?:facts|extracted_fact)"[\s\S]*?\}', cleaned)
+                    if json_match:
+                        try:
+                            result = json.loads(json_match.group(0))
+                        except Exception:
+                            pass
+                            
+                # 4. Fallback regex to extract fact string directly from JSON keys
+                if result is None:
+                    fact_match = re.search(r'"extracted_fact"\s*:\s*"([^"]+)"', cleaned)
+                    if fact_match:
+                        result = {"extracted_fact": fact_match.group(1), "facts": [fact_match.group(1)], "delete_ids": []}
+                
+                # 5. Fallback regex to extract from thinking/prose output
+                if result is None:
+                    prose_fact_match = re.search(r'(?:Fact|Extracted Fact|User Fact):\s*(?:User\s+)?([^\n]+)', cleaned, re.IGNORECASE)
+                    if prose_fact_match:
+                        extracted_text = prose_fact_match.group(1).strip().rstrip(".,")
+                        if not extracted_text.lower().startswith("user"):
+                            extracted_text = f"User {extracted_text}"
+                        result = {"extracted_fact": extracted_text, "facts": [extracted_text], "delete_ids": []}
 
-            # 6. Direct string fallback if LLM returned plain text fact
-            if result is None and cleaned and not cleaned.startswith("{") and not cleaned.startswith("["):
-                result = {"extracted_fact": cleaned, "facts": [cleaned], "delete_ids": []}
+                # 6. Direct string fallback if LLM returned plain text fact
+                if result is None and cleaned and not cleaned.startswith("{") and not cleaned.startswith("["):
+                    result = {"extracted_fact": cleaned, "facts": [cleaned], "delete_ids": []}
 
-            # 7. Collect all facts (multi-fact + fallback)
-            facts_to_save = []
-            if result and isinstance(result, dict):
-                # Check "facts" array first
-                raw_facts = result.get("facts", [])
-                if isinstance(raw_facts, list):
-                    for rf in raw_facts:
-                        if rf and isinstance(rf, str) and rf.strip().lower() not in ["none", "null", "n/a"]:
-                            c_fact = rf.strip().rstrip(".") + "."
+                if result and isinstance(result, dict):
+                    raw_facts = result.get("facts", [])
+                    if isinstance(raw_facts, list):
+                        for rf in raw_facts:
+                            if rf and isinstance(rf, str) and rf.strip().lower() not in ["none", "null", "n/a"]:
+                                c_fact = rf.strip()
+                                if not c_fact.lower().startswith("user"):
+                                    c_fact = f"User {c_fact}"
+                                if c_fact not in facts_to_save:
+                                    facts_to_save.append(c_fact)
+                                    
+                    if not facts_to_save:
+                        single_fact = result.get("extracted_fact")
+                        if single_fact and isinstance(single_fact, str) and single_fact.strip().lower() not in ["none", "null", "n/a"]:
+                            c_fact = single_fact.strip()
                             if not c_fact.lower().startswith("user"):
                                 c_fact = f"User {c_fact}"
-                            if c_fact not in facts_to_save:
-                                facts_to_save.append(c_fact)
-                                
-                # Check "extracted_fact" if facts array was empty
-                if not facts_to_save:
-                    single_fact = result.get("extracted_fact")
-                    if single_fact and isinstance(single_fact, str) and single_fact.strip().lower() not in ["none", "null", "n/a"]:
-                        c_fact = single_fact.strip().rstrip(".") + "."
-                        if not c_fact.lower().startswith("user"):
-                            c_fact = f"User {c_fact}"
-                        facts_to_save.append(c_fact)
+                            facts_to_save.append(c_fact)
 
-            # Heuristic multi-part check for high-signal user attributes
-            name_m = re.search(r'\bmy name is\s+([A-Za-z]+)', query, re.IGNORECASE)
-            if name_m:
-                name_fact = f"User's name is {name_m.group(1).title()}."
-                if not any(name_m.group(1).lower() in f.lower() for f in facts_to_save):
-                    facts_to_save.append(name_fact)
+                    for d_id in result.get("delete_ids", []):
+                        if d_id and d_id not in delete_ids:
+                            delete_ids.append(d_id)
+                llm_success = True
+        except Exception as e:
+            logger.warning(f"LLM memory extraction encountered error (falling back to pattern extraction): {e}")
 
-            role_m = re.search(r'\bi am (preparing for|learning|working as|working on|studying)\s+([A-Za-z0-9\s\.\-_]+)', query, re.IGNORECASE)
-            if role_m:
-                action_verb = role_m.group(1).strip()
-                action_target = role_m.group(2).strip()
-                role_fact = f"User is {action_verb} {action_target}."
-                if not any(action_target.lower() in f.lower() for f in facts_to_save):
-                    facts_to_save.append(role_fact)
+        # Heuristic multi-part check for high-signal user attributes (always runs as safety net)
+        name_m = re.search(r'\bmy name is\s+([A-Za-z]+)', query, re.IGNORECASE)
+        if name_m:
+            name_fact = f"User's name is {name_m.group(1).title()}."
+            if not any(name_m.group(1).lower() in f.lower() for f in facts_to_save):
+                facts_to_save.append(name_fact)
 
-            love_m = re.search(r'\bi love\s+([A-Za-z0-9\s\.\-_]+)', query, re.IGNORECASE)
-            if love_m:
-                love_fact = f"User loves {love_m.group(1).strip()}."
-                if not any("loves" in f.lower() for f in facts_to_save):
-                    facts_to_save.append(love_fact)
+        role_m = re.search(r'\b(?:i am|i\'m)\s+(?:a\s+|an\s+)?([A-Za-z\s]+?(?:engineer|developer|architect|designer|specialist|consultant))\b', query, re.IGNORECASE)
+        if role_m:
+            role_val = role_m.group(1).strip().title()
+            role_fact = f"User works as a {role_val}."
+            if not any("engineer" in f.lower() or "developer" in f.lower() or "architect" in f.lower() for f in facts_to_save):
+                facts_to_save.append(role_fact)
 
-            delete_ids = result.get("delete_ids", []) if isinstance(result, dict) else []
-            
-            # Delete old memories
-            for d_id in delete_ids:
-                if d_id:
+        action_m = re.search(r'\bi am (preparing for|learning|working as|working on|studying)\s+([A-Za-z0-9\s\.\-_]+)', query, re.IGNORECASE)
+        if action_m:
+            action_verb = action_m.group(1).strip()
+            action_target = action_m.group(2).strip()
+            action_fact = f"User is {action_verb} {action_target}."
+            if not any(action_target.lower() in f.lower() for f in facts_to_save):
+                facts_to_save.append(action_fact)
+
+        pref_m = re.search(r'\bi prefer\s+([^.,]+)', query, re.IGNORECASE)
+        if pref_m:
+            pref_val = pref_m.group(1).strip()
+            pref_fact = f"User prefers {pref_val}."
+            if not any("prefer" in f.lower() for f in facts_to_save):
+                facts_to_save.append(pref_fact)
+
+        building_m = re.search(r'\b(?:building|creating|developing)\s+(?:an?|the)?\s*([^.,]+)', query, re.IGNORECASE)
+        if building_m:
+            b_val = building_m.group(1).strip()
+            b_fact = f"User is building {b_val}."
+            if not any("building" in f.lower() or "developing" in f.lower() for f in facts_to_save):
+                facts_to_save.append(b_fact)
+
+        love_m = re.search(r'\bi love\s+([A-Za-z0-9\s\.\-_]+)', query, re.IGNORECASE)
+        if love_m:
+            love_fact = f"User loves {love_m.group(1).strip()}."
+            if not any("loves" in f.lower() for f in facts_to_save):
+                facts_to_save.append(love_fact)
+
+        # Delete superseded memories if any
+        for d_id in delete_ids:
+            if d_id:
+                try:
                     self.rag_service.delete_user_memory(user_id, d_id)
-                    logger.info(f"Deleted old user memory ID: {d_id}")
-                    
-            # Rebuild user_memories list safely by filtering out deleted ones
-            state["user_memories"] = [
-                m["content"] for m in existing_memories 
-                if m.get("id") not in delete_ids
-            ]
-                    
-            # Add new memories
-            if facts_to_save:
-                for f_item in facts_to_save:
-                    already_stored = any(f_item.strip().lower() == em.strip().lower() for em in state["user_memories"])
-                    if not already_stored:
-                        logger.info(f"Saving user memory to brain: {f_item}")
+                    logger.info(f"Deleted superseded user memory ID: {d_id}")
+                except Exception as e:
+                    logger.warning(f"Could not delete old memory {d_id}: {e}")
+                
+        # Rebuild user_memories list safely by filtering out deleted ones
+        state["user_memories"] = [
+            m["content"] for m in existing_memories 
+            if m.get("id") not in delete_ids
+        ]
+                
+        # Add new memories with deduplication against state and vector store
+        if facts_to_save:
+            for f_item in facts_to_save:
+                already_stored = any(f_item.strip().lower() == em.strip().lower() for em in state["user_memories"])
+                if not already_stored:
+                    logger.info(f"Saving user memory to brain: {f_item}")
+                    try:
                         self.rag_service.add_user_memory(user_id, f_item)
                         state["user_memories"].append(f_item)
-                state["memory_status"] = "SAVED"
-            else:
-                state["memory_status"] = "SKIPPED"
-                
-        except json.JSONDecodeError:
-            logger.error("Failed to parse memory JSON from LLM")
-            state["memory_status"] = "FAILED"
-        except Exception as e:
-            err_str = str(e).lower()
-            if any(x in err_str for x in ["429", "503", "500", "502", "504", "timeout", "connection", "unavailable", "too many requests"]):
-                state["memory_status"] = "LLM_UNAVAILABLE"
-                logger.warning(f"LLM Unavailable during memory extraction: {e}")
-            else:
-                state["memory_status"] = "FAILED"
-                logger.error(f"Failed to extract memory via LLM: {e}")
+                    except Exception as e:
+                        logger.error(f"Failed saving memory point {f_item}: {e}")
+            state["memory_status"] = "SAVED"
+        elif not llm_success:
+            state["memory_status"] = "LLM_UNAVAILABLE"
+        else:
+            state["memory_status"] = "SKIPPED"
             
         return state
 

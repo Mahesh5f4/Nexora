@@ -126,7 +126,9 @@ const MemoryManager = ({ isOpen, onClose }) => {
                         </span>
                       </div>
                       <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
-                        {new Date(mem.created_at || Date.now()).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'})}
+                        {mem.created_at && !isNaN(new Date(mem.created_at).getTime())
+                          ? new Date(mem.created_at).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'})
+                          : new Date().toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'})}
                       </span>
                     </div>
                   </div>

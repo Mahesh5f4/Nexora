@@ -476,6 +476,14 @@ class AgentGraph:
         pref_m = re.search(r'^i prefer\s+([^.]+)', query.strip(), re.IGNORECASE)
         if pref_m:
             deterministic_fact = f"User explicitly stated: I prefer {pref_m.group(1).strip()}"
+
+        goal_m = re.search(r'my goal is\s+([^.]+)', query, re.IGNORECASE)
+        if goal_m:
+            deterministic_fact = f"User's goal is {goal_m.group(1).strip()}."
+
+        name_m = re.search(r'my name is\s+([A-Za-z]+)', query, re.IGNORECASE)
+        if name_m and not deterministic_fact:
+            deterministic_fact = f"User's name is {name_m.group(1).strip().title()}."
             
         if deterministic_fact:
             try:

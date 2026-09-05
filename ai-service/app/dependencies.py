@@ -62,8 +62,16 @@ def get_qdrant_client() -> QdrantClient:
     if _qdrant_client is None:
         with _lock:
             if _qdrant_client is None:
-                _qdrant_client = QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key)
-                logger.info(f"QdrantClient singleton connected to {settings.qdrant_url}")
+                import os, socket
+                url = os.getenv("QDRANT_URL") or settings.qdrant_url
+                if "://qdrant" in url:
+                    try:
+                        socket.gethostbyname("qdrant")
+                    except Exception:
+                        url = "http://localhost:6333"
+                api_key = os.getenv("QDRANT_API_KEY") or settings.qdrant_api_key or None
+                _qdrant_client = QdrantClient(url=url, api_key=api_key, timeout=5.0)
+                logger.info(f"QdrantClient singleton connected to {url}")
     return _qdrant_client
 
 

@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import logging
 from typing import Generator, Tuple
 
@@ -101,108 +102,110 @@ class LLMGateway:
         else:
             self._init_llm(api_key)
 
+    MODELS = [
+        "google/gemma-4-31b-it:free",
+        "minimax/minimax-m3:free",
+        "google/gemma-4-26b-a4b-it:free",
+        "nvidia/nemotron-3-super-120b-a12b:free",
+        "inclusionai/ling-3.0-flash-fin:free",
+        "nvidia/nemotron-3.5-lightning:free",
+        "cohere/north-mini-code:free",
+        "openrouter/auto"
+    ]
+
     def _init_llm(self, api_key: str):
-        base_params = {
-            "api_key": api_key,
-            "openai_api_key": api_key,
-            "base_url": "https://openrouter.ai/api/v1",
-            "max_retries": 1,
-            "default_headers": {
-                "HTTP-Referer": "https://thinkactionai.netlify.app",
-                "X-Title": "ThinkAction AI"
-            }
-        }
+        self._api_key = api_key
 
-        # Optimized model chain prioritizing fastest low-latency streaming models
-        primary_llm = ChatOpenAI(model="openrouter/free", **base_params)
-        fallback_1 = ChatOpenAI(model="google/gemma-4-31b-it:free", **base_params)
-        fallback_2 = ChatOpenAI(model="nvidia/nemotron-3.5-lightning:free", **base_params)
-        fallback_3 = ChatOpenAI(model="minimax/minimax-m3:free", **base_params)
-        fallback_4 = ChatOpenAI(model="google/gemma-4-26b-a4b-it:free", **base_params)
-        fallback_5 = ChatOpenAI(model="liquid/lfm-2.5-2.6b:free", **base_params)
-
-        self.llm = primary_llm.with_fallbacks([fallback_1, fallback_2, fallback_3, fallback_4, fallback_5])
-
-    def _build_messages(self, request: AiExecuteRequest):
+    def _build_messages_payload(self, request: AiExecuteRequest):
         messages = []
         if request.systemPrompt:
-            messages.append(SystemMessage(content=request.systemPrompt))
-        messages.append(HumanMessage(content=request.prompt))
+            messages.append({"role": "system", "content": request.systemPrompt})
+        messages.append({"role": "user", "content": request.prompt})
         return messages
 
     def _cache_key(self, request: AiExecuteRequest) -> str:
-        """
-        Extract the user question for semantic caching.
-        If we embed the entire prompt (with RAG context and history), the context dominates 
-        the embedding, causing a 0.99 similarity between completely different questions.
-        """
         prompt = request.prompt
         if "--- USER QUESTION ---\n" in prompt:
-            # Only embed the actual user question so similarity is based on what they asked
             return prompt.split("--- USER QUESTION ---\n")[-1].strip()
-            
         if "--- ANALYSIS REQUEST ---\n" in prompt:
             return prompt.split("--- ANALYSIS REQUEST ---\n")[-1].strip()
-
-        # Fallback for generic prompts
         return prompt.strip()
 
     def _ensure_llm(self):
-        if self.llm is None:
+        if not getattr(self, "_api_key", None):
             api_key = os.getenv("OPENROUTER_API_KEY", "")
             if not api_key:
                 raise ValueError("OPENROUTER_API_KEY is missing from environment variables!")
             self._init_llm(api_key)
 
     def execute_prompt(self, request: AiExecuteRequest):
-        """
-        Synchronous prompt execution with two-level caching:
-          1. Semantic cache (near-duplicate match).
-          2. LangChain InMemoryCache (exact match, handled transparently by LC).
-        """
         self._ensure_llm()
         cache_key = self._cache_key(request)
 
-        # --- Layer 1: semantic cache lookup ---
+        # 1. Semantic cache lookup
         if self._semantic_cache is not None:
             cached = self._semantic_cache.get(cache_key, system_prompt=request.systemPrompt)
             if cached is not None:
                 class CachedResponse:
                     def __init__(self, content):
                         self.content = content
-                        self.provider = "SemanticCache (Python Gateway)"
+                        self.provider = "SemanticCache"
                 return CachedResponse(cached)
 
-        # --- Layer 2 + 3: LangChain (InMemoryCache exact-match → OpenRouter) ---
-        messages = self._build_messages(request)
-        llm_with_args = self.llm.bind(
-            temperature=request.temperature or 0.2,
-            max_tokens=request.maxTokens or 4096
-        )
-        logger.info("Executing prompt via Python LangChain Gateway...")
-        response = llm_with_args.invoke(messages)
-        content = clean_reasoning_output(response.content)
+        # 2. Call OpenRouter with fallback models
+        messages = self._build_messages_payload(request)
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://thinkactionai.netlify.app",
+            "X-Title": "ThinkAction AI"
+        }
 
-        # Store in semantic cache for future near-duplicate hits
-        if self._semantic_cache is not None:
-            self._semantic_cache.store(cache_key, content, system_prompt=request.systemPrompt)
+        import requests, json
+        last_error = None
+        for model in self.MODELS:
+            try:
+                logger.info(f"Executing prompt via OpenRouter model: {model}")
+                payload = {
+                    "model": model,
+                    "messages": messages,
+                    "temperature": request.temperature or 0.2,
+                    "max_tokens": request.maxTokens or 4096
+                }
+                r = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=10
+                )
+                if r.status_code == 200:
+                    data = json.loads(r.content.decode("utf-8", errors="replace"))
+                    msg = data.get("choices", [{}])[0].get("message", {})
+                    raw_content = msg.get("content") or msg.get("reasoning") or ""
+                    clean_content = clean_reasoning_output(raw_content)
 
-        class MockResponse:
-            def __init__(self, text):
-                self.content = text
-                self.provider = "Gemini (Python Gateway)"
+                    if self._semantic_cache is not None and clean_content:
+                        self._semantic_cache.store(cache_key, clean_content, system_prompt=request.systemPrompt)
 
-        return MockResponse(content)
+                    class ModelResponse:
+                        def __init__(self, text):
+                            self.content = text
+                            self.provider = model
+
+                    return ModelResponse(clean_content)
+                else:
+                    logger.warning(f"Model {model} returned HTTP {r.status_code}: {r.text[:150]}")
+            except Exception as e:
+                logger.warning(f"Model {model} failed: {e}")
+                last_error = e
+
+        raise RuntimeError(f"All LLM models in fallback chain failed. Last error: {last_error}")
 
     def execute_prompt_stream(self, request: AiExecuteRequest) -> Generator[Tuple[str, str], None, None]:
-        """
-        Streaming prompt execution with two-level caching and thinking separation.
-        Yields (event_type, chunk_text) where event_type is 'thinking' or 'token'.
-        """
         self._ensure_llm()
         cache_key = self._cache_key(request)
 
-        # --- Layer 1: semantic cache lookup ---
+        # 1. Semantic cache lookup
         if self._semantic_cache is not None:
             cached = self._semantic_cache.get(cache_key, system_prompt=request.systemPrompt)
             if cached is not None:
@@ -210,105 +213,144 @@ class LLMGateway:
                 yield ("token", cached)
                 return
 
-        # --- Layer 2 + 3: LangChain → OpenRouter ---
-        messages = self._build_messages(request)
-        llm_with_args = self.llm.bind(
-            temperature=request.temperature or 0.2,
-            max_tokens=request.maxTokens or 4096
-        )
-        logger.info("Streaming prompt via Python LangChain Gateway...")
-        
-        full_tokens = []
-        in_think_tag = False
-        in_prose_thinking = None
-        header_buffer = ""
+        # 2. Call OpenRouter with fallback models
+        messages = self._build_messages_payload(request)
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://thinkactionai.netlify.app",
+            "X-Title": "ThinkAction AI"
+        }
 
-        for chunk in llm_with_args.stream(messages):
-            # Explicit reasoning content
-            reasoning_kwarg = chunk.additional_kwargs.get("reasoning_content") or getattr(chunk, "reasoning_content", None)
-            if reasoning_kwarg:
-                yield ("thinking", str(reasoning_kwarg))
+        import requests, json
+        streamed_successfully = False
+        last_error = None
 
-            content = chunk.content
-            if not content or not isinstance(content, str):
-                continue
+        for model in self.MODELS:
+            full_tokens = []
+            try:
+                logger.info(f"Streaming prompt via OpenRouter model: {model}")
+                payload = {
+                    "model": model,
+                    "messages": messages,
+                    "stream": True,
+                    "temperature": request.temperature or 0.2,
+                    "max_tokens": request.maxTokens or 4096
+                }
+                r = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    stream=True,
+                    timeout=10
+                )
+                if r.status_code != 200:
+                    logger.warning(f"Model {model} stream returned HTTP {r.status_code}: {r.text[:150]}")
+                    continue
 
-            while content:
-                if not in_think_tag:
-                    if "<think>" in content.lower():
-                        pre, post = re.split(r'<think>', content, flags=re.IGNORECASE, maxsplit=1)
-                        if pre:
-                            if in_prose_thinking is False:
-                                full_tokens.append(pre)
-                                yield ("token", pre)
-                            else:
-                                header_buffer += pre
-                        in_think_tag = True
-                        content = post
-                    else:
-                        if in_prose_thinking is None:
-                            header_buffer += content
-                            if "\n\n" in header_buffer or len(header_buffer) > 250:
-                                if re.search(r'^(?:User Safety:\s*(?:un)?safe|Safety Categories:)', header_buffer, re.IGNORECASE):
-                                    friendly_msg = "I currently don't have any saved memories or personal facts about you. Feel free to tell me about your background, preferences, or goals, and I'll remember them for our chats!"
-                                    in_prose_thinking = False
-                                    full_tokens.append(friendly_msg)
-                                    yield ("token", friendly_msg)
-                                    header_buffer = ""
-                                    break
-                                elif is_thinking_header(header_buffer):
-                                    if "\n\n" in header_buffer:
-                                        parts = header_buffer.split("\n\n", 1)
-                                        yield ("thinking", parts[0] + "\n\n")
-                                        in_prose_thinking = False
-                                        if parts[1]:
-                                            full_tokens.append(parts[1])
-                                            yield ("token", parts[1])
-                                    else:
-                                        in_prose_thinking = True
-                                        yield ("thinking", header_buffer)
+                in_think_tag = False
+                in_prose_thinking = None
+                header_buffer = ""
+
+                for line_bytes in r.iter_lines(decode_unicode=False):
+                    if not line_bytes:
+                        continue
+                    line = line_bytes.decode("utf-8", errors="replace")
+                    if not line.startswith("data:"):
+                        continue
+                    data_str = line[5:].strip()
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        chunk_obj = json.loads(data_str)
+                        delta = chunk_obj.get("choices", [{}])[0].get("delta", {})
+                        
+                        # Explicit reasoning content
+                        reasoning = delta.get("reasoning")
+                        if reasoning:
+                            yield ("thinking", str(reasoning))
+
+                        content = delta.get("content")
+                        if not content or not isinstance(content, str):
+                            continue
+
+                        while content:
+                            if not in_think_tag:
+                                if "<think>" in content.lower():
+                                    pre, post = re.split(r'<think>', content, flags=re.IGNORECASE, maxsplit=1)
+                                    if pre:
+                                        if in_prose_thinking is False:
+                                            full_tokens.append(pre)
+                                            yield ("token", pre)
+                                        else:
+                                            header_buffer += pre
+                                    in_think_tag = True
+                                    content = post
                                 else:
-                                    in_prose_thinking = False
-                                    full_tokens.append(header_buffer)
-                                    yield ("token", header_buffer)
-                                header_buffer = ""
-                        elif in_prose_thinking is True:
-                            if "\n\n" in content:
-                                parts = content.split("\n\n", 1)
-                                yield ("thinking", parts[0] + "\n\n")
-                                in_prose_thinking = False
-                                if parts[1]:
-                                    full_tokens.append(parts[1])
-                                    yield ("token", parts[1])
+                                    if in_prose_thinking is None:
+                                        header_buffer += content
+                                        if "\n\n" in header_buffer or len(header_buffer) > 200:
+                                            if is_thinking_header(header_buffer):
+                                                if "\n\n" in header_buffer:
+                                                    parts = header_buffer.split("\n\n", 1)
+                                                    yield ("thinking", parts[0] + "\n\n")
+                                                    in_prose_thinking = False
+                                                    if parts[1]:
+                                                        full_tokens.append(parts[1])
+                                                        yield ("token", parts[1])
+                                                else:
+                                                    in_prose_thinking = True
+                                                    yield ("thinking", header_buffer)
+                                            else:
+                                                in_prose_thinking = False
+                                                full_tokens.append(header_buffer)
+                                                yield ("token", header_buffer)
+                                            header_buffer = ""
+                                    elif in_prose_thinking is True:
+                                        if "\n\n" in content:
+                                            parts = content.split("\n\n", 1)
+                                            yield ("thinking", parts[0] + "\n\n")
+                                            in_prose_thinking = False
+                                            if parts[1]:
+                                                full_tokens.append(parts[1])
+                                                yield ("token", parts[1])
+                                        else:
+                                            yield ("thinking", content)
+                                    else:
+                                        full_tokens.append(content)
+                                        yield ("token", content)
+                                    content = ""
                             else:
-                                yield ("thinking", content)
-                        else:
-                            full_tokens.append(content)
-                            yield ("token", content)
-                        content = ""
-                else:
-                    if "</think>" in content.lower():
-                        think_text, post = re.split(r'</think>', content, flags=re.IGNORECASE, maxsplit=1)
-                        if think_text:
-                            yield ("thinking", think_text)
-                        in_think_tag = False
-                        content = post.lstrip()
+                                if "</think>" in content.lower():
+                                    think_text, post = re.split(r'</think>', content, flags=re.IGNORECASE, maxsplit=1)
+                                    if think_text:
+                                        yield ("thinking", think_text)
+                                    in_think_tag = False
+                                    content = post.lstrip()
+                                else:
+                                    yield ("thinking", content)
+                                    content = ""
+                    except Exception:
+                        pass
+
+                if header_buffer:
+                    if is_thinking_header(header_buffer):
+                        yield ("thinking", header_buffer)
                     else:
-                        yield ("thinking", content)
-                        content = ""
+                        full_tokens.append(header_buffer)
+                        yield ("token", header_buffer)
 
-        if header_buffer:
-            if re.search(r'^(?:User Safety:\s*(?:un)?safe|Safety Categories:)', header_buffer, re.IGNORECASE):
-                friendly_msg = "I currently don't have any saved memories or personal facts about you. Feel free to tell me about your background, preferences, or goals, and I'll remember them for our chats!"
-                full_tokens.append(friendly_msg)
-                yield ("token", friendly_msg)
-            elif is_thinking_header(header_buffer):
-                yield ("thinking", header_buffer)
-            else:
-                full_tokens.append(header_buffer)
-                yield ("token", header_buffer)
+                if full_tokens:
+                    streamed_successfully = True
+                    if self._semantic_cache is not None:
+                        self._semantic_cache.store(cache_key, "".join(full_tokens), system_prompt=request.systemPrompt)
+                    break
 
-        # Store in semantic cache after streaming completes
-        if self._semantic_cache is not None and full_tokens:
-            self._semantic_cache.store(cache_key, "".join(full_tokens), system_prompt=request.systemPrompt)
+            except Exception as e:
+                logger.warning(f"Model {model} stream execution failed: {e}")
+                last_error = e
+
+        if not streamed_successfully:
+            logger.error(f"All streaming models failed. Last error: {last_error}")
+            yield ("token", "I'm having a brief connection issue reaching the AI model. Please try again in a moment.")
 

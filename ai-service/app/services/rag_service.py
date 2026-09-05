@@ -86,8 +86,9 @@ class RAGService:
         if not vectors:
             return
             
-        import uuid
+        import uuid, datetime
         unique_id = str(uuid.uuid4())
+        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
         
         from qdrant_client.models import PointStruct
         payload = {
@@ -96,7 +97,8 @@ class RAGService:
             "chunk_id": unique_id,
             "content": fact_clean,
             "filename": "User Profile Memory",
-            "is_memory": True
+            "is_memory": True,
+            "created_at": now_iso
         }
         
         point = PointStruct(
@@ -112,26 +114,29 @@ class RAGService:
 
     def list_user_memory(self, user_id: str) -> List[Dict[str, Any]]:
         """Lists all memory facts for a user without searching."""
-        from qdrant_client import models
-        # We can use scroll to get all memories for this user
-        results, _ = self.vector_store._client.scroll(
-            collection_name=self.vector_store._collection_name,
-            scroll_filter=models.Filter(
-                must=[
-                    models.FieldCondition(key="user_id", match=models.MatchValue(value=user_id)),
-                    models.FieldCondition(key="document_id", match=models.MatchValue(value="user_profile_memory"))
-                ]
-            ),
-            limit=100
-        )
-        memories = []
-        for p in results:
-            memories.append({
-                "id": p.id,
-                "content": p.payload.get("content", ""),
-                "created_at": p.payload.get("created_at", "")
-            })
-        return memories
+        try:
+            from qdrant_client import models
+            results, _ = self.vector_store._client.scroll(
+                collection_name=self.vector_store._collection_name,
+                scroll_filter=models.Filter(
+                    must=[
+                        models.FieldCondition(key="user_id", match=models.MatchValue(value=user_id)),
+                        models.FieldCondition(key="document_id", match=models.MatchValue(value="user_profile_memory"))
+                    ]
+                ),
+                limit=100
+            )
+            memories = []
+            for p in results:
+                memories.append({
+                    "id": p.id,
+                    "content": p.payload.get("content", ""),
+                    "created_at": p.payload.get("created_at", "")
+                })
+            return memories
+        except Exception as e:
+            logger.warning(f"Failed to fetch user memory from Qdrant: {e}")
+            return []
 
     def delete_user_memory(self, user_id: str, memory_id: str):
         """Deletes a specific memory fact by its unique ID."""

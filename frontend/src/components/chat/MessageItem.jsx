@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { User, BrainCircuit, Globe, FileText, ExternalLink, Copy, Check, RefreshCw, MoreHorizontal } from 'lucide-react';
 import CodeBlock from './CodeBlock';
 import StreamingStatus from './StreamingStatus';
+import UserMessageAttachments from './UserMessageAttachments';
 import { copyToClipboard } from '../../utils/clipboard';
 
 /**
@@ -114,15 +115,8 @@ const MessageItem = ({ message, isStreaming, onStreamingComplete }) => {
           
           <div className="text-white/90">
             {isUser ? (
-              <div className="bg-[#1A1A1C] rounded-2xl px-4 py-3 whitespace-pre-wrap text-[14px] leading-[1.6]">
-                {message.images && message.images.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2.5">
-                    {message.images.map((img, idx) => (
-                      <img key={idx} src={img} alt="Attached upload" className="max-w-[280px] max-h-[180px] object-cover rounded-xl border border-white/15 shadow-md" />
-                    ))}
-                  </div>
-                )}
-                {message.content}
+              <div className="bg-[#1A1A1C] rounded-2xl px-4 py-3">
+                <UserMessageAttachments message={message} />
               </div>
             ) : isStreaming && !displayedContent ? (
               <StreamingStatus metadata={message.metadata} mode="GENERAL" />

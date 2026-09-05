@@ -8,6 +8,7 @@ import CodeBlock from '../chat/CodeBlock';
 import AgentInput from '../chat/AgentInput';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
 import StreamingStatus from '../chat/StreamingStatus';
+import UserMessageAttachments from '../chat/UserMessageAttachments';
 import { AGENT_CONFIG } from '../../config/agentConfig';
 import { copyToClipboard } from '../../utils/clipboard';
 
@@ -127,16 +128,7 @@ const ResearchMessage = React.memo(({ msg, allSources }) => {
             : 'w-full text-white/85'
         }`}>
           {isUser ? (
-            <div>
-              {msg.images && msg.images.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2.5">
-                  {msg.images.map((img, idx) => (
-                    <img key={idx} src={img} alt="Attached upload" className="max-w-[280px] max-h-[180px] object-cover rounded-xl border border-white/15 shadow-md" />
-                  ))}
-                </div>
-              )}
-              <p className="whitespace-pre-wrap">{rawContent}</p>
-            </div>
+            <UserMessageAttachments message={msg} />
           ) : msg.streaming && !msg.content ? (
             <StreamingStatus metadata={msg.metadata} mode="RESEARCH" />
           ) : (
@@ -199,7 +191,9 @@ const ResearchMessage = React.memo(({ msg, allSources }) => {
     prevProps.msg.thinking === nextProps.msg.thinking &&
     prevProps.msg.metadata === nextProps.msg.metadata &&
     prevProps.msg.activities?.length === nextProps.msg.activities?.length &&
-    prevProps.msg.sources?.length === nextProps.msg.sources?.length
+    prevProps.msg.sources?.length === nextProps.msg.sources?.length &&
+    prevProps.msg.images?.length === nextProps.msg.images?.length &&
+    prevProps.msg.attachments?.length === nextProps.msg.attachments?.length
   );
 });
 

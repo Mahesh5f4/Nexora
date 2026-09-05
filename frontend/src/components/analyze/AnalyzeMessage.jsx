@@ -5,6 +5,7 @@ import rehypeRaw from 'rehype-raw';
 import CodeBlock from '../chat/CodeBlock';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
 import StreamingStatus from '../chat/StreamingStatus';
+import UserMessageAttachments from '../chat/UserMessageAttachments';
 import { User, BrainCircuit, CheckCircle2, AlertTriangle, Loader2, Copy, Check } from 'lucide-react';
 import { AGENT_CONFIG } from '../../config/agentConfig';
 import { copyToClipboard } from '../../utils/clipboard';
@@ -87,16 +88,7 @@ const AnalyzeMessage = React.memo(({ message }) => {
             : 'w-full text-white/85'
         }`}>
           {isUser ? (
-            <div>
-              {message.images && message.images.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2.5">
-                  {message.images.map((img, idx) => (
-                    <img key={idx} src={img} alt="Attached upload" className="max-w-[280px] max-h-[180px] object-cover rounded-xl border border-white/15 shadow-md" />
-                  ))}
-                </div>
-              )}
-              <p className="whitespace-pre-wrap">{message.content}</p>
-            </div>
+            <UserMessageAttachments message={message} />
           ) : message.streaming && !message.content ? (
             <StreamingStatus metadata={message.metadata} mode="ANALYZE" />
           ) : (() => {

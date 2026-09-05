@@ -109,9 +109,17 @@ const AgentInput = ({ agentType, input, setInput, submit, isLoading, handleStop 
     }
 
     const imageAttachments = attachments.filter(a => a.type === 'image').map(a => a.dataUrl);
+    const filesMeta = attachments.map(a => ({
+      name: a.name,
+      size: a.size,
+      type: a.type,
+      dataUrl: a.dataUrl || null,
+    }));
 
     submit(combinedText || "Analyze the attached file(s)", {
-      images: imageAttachments.length > 0 ? imageAttachments : undefined
+      images: imageAttachments.length > 0 ? imageAttachments : undefined,
+      displayPrompt: trimmedInput,
+      attachments: filesMeta,
     });
 
     setInput('');
@@ -143,30 +151,33 @@ const AgentInput = ({ agentType, input, setInput, submit, isLoading, handleStop 
           className="hidden"
         />
 
-        {/* Attachment preview drawer */}
+        {/* Claude-style Attachment preview drawer */}
         {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 px-3.5 pt-3 pb-1 border-b border-white/5 bg-white/[0.02]">
+          <div className="flex flex-wrap gap-2.5 px-3.5 pt-3 pb-2 border-b border-white/10 bg-white/[0.03]">
             {attachments.map((att) => (
               <div
                 key={att.id}
-                className="relative group flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-zinc-300 transition-all"
+                className="relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-xs text-zinc-300 transition-all shadow-sm"
               >
                 {att.type === 'image' ? (
-                  <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-white/20 bg-black/40">
+                  <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-white/20 bg-black/40 shrink-0">
                     <img src={att.dataUrl} alt={att.name} className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <FileText size={16} className="text-blue-400 shrink-0" />
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                    <FileText size={16} className="text-blue-400" />
+                  </div>
                 )}
-                <div className="flex flex-col max-w-[130px]">
-                  <span className="truncate text-white/90 font-medium text-[11px]">{att.name}</span>
-                  <span className="text-[10px] text-zinc-500">{formatFileSize(att.size)}</span>
+                <div className="flex flex-col max-w-[140px]">
+                  <span className="truncate text-white/95 font-medium text-[11px]">{att.name}</span>
+                  <span className="text-[10px] text-zinc-400">{formatFileSize(att.size)}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => removeAttachment(att.id)}
-                  className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
+                  className="w-5 h-5 rounded-full flex items-center justify-center bg-white/10 hover:bg-red-500/30 text-zinc-400 hover:text-red-300 transition-all cursor-pointer ml-0.5"
                   title="Remove attachment"
+                  aria-label="Remove attachment"
                 >
                   <X size={12} />
                 </button>

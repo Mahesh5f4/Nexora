@@ -8,6 +8,7 @@ import CodeBlock from '../chat/CodeBlock';
 import AgentInput from '../chat/AgentInput';
 import SourceRoutingTags from '../chat/SourceRoutingTags';
 import StreamingStatus from '../chat/StreamingStatus';
+import UserMessageAttachments from '../chat/UserMessageAttachments';
 import { copyToClipboard } from '../../utils/clipboard';
 
 /**
@@ -101,7 +102,7 @@ const MessageBubble = React.memo(({ msg }) => {
             : 'w-full text-white/90'
         }`}>
           {isUser ? (
-            <p className="whitespace-pre-wrap text-[14px] leading-[1.6]">{msg.content}</p>
+            <UserMessageAttachments message={msg} />
           ) : msg.streaming && !msg.content ? (
             <StreamingStatus metadata={msg.metadata} mode="GENERAL" />
           ) : (
@@ -150,7 +151,9 @@ const MessageBubble = React.memo(({ msg }) => {
     prevProps.msg.thinking === nextProps.msg.thinking &&
     prevProps.msg.metadata === nextProps.msg.metadata &&
     prevProps.msg.activities?.length === nextProps.msg.activities?.length &&
-    prevProps.msg.sources?.length === nextProps.msg.sources?.length
+    prevProps.msg.sources?.length === nextProps.msg.sources?.length &&
+    prevProps.msg.images?.length === nextProps.msg.images?.length &&
+    prevProps.msg.attachments?.length === nextProps.msg.attachments?.length
   );
 });
 

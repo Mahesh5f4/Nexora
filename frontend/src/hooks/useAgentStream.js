@@ -145,9 +145,19 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
     const userMsgId = `user-${Date.now()}`;
     const asstMsgId = `asst-${Date.now()}`;
 
+    const displayContent = options.displayPrompt !== undefined ? options.displayPrompt : content.trim();
+
     setMessages(prev => [
       ...prev.map(m => m.streaming ? { ...m, streaming: false } : m),
-      { id: userMsgId, sender: 'USER', content: content.trim(), createdAt: new Date().toISOString(), images: options.images || [] },
+      {
+        id: userMsgId,
+        sender: 'USER',
+        content: displayContent,
+        rawContent: content.trim(),
+        createdAt: new Date().toISOString(),
+        images: options.images || [],
+        attachments: options.attachments || [],
+      },
       { id: asstMsgId, sender: 'ASSISTANT', content: '', thinking: '', activities: [], streaming: true, sources: [], metadata: null }
     ]);
     setIsLoading(true);

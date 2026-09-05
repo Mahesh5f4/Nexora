@@ -497,26 +497,35 @@ class AgentGraph:
                 state["memory_status"] = "FAILED"
                 return state
 
-        # 3. Build smart deduplication prompt
+        # 3. Claude-Style Multi-Fact Taxonomy Prompt
         memories_str = "None"
         if existing_memories and isinstance(existing_memories, list):
             memories_list = [f"- [ID: {m['id']}] {m['content']}" for m in existing_memories if isinstance(m, dict) and 'id' in m and 'content' in m]
             if memories_list:
                 memories_str = "\n".join(memories_list)
             
-        prompt = f"""User message: '{query}'
+        prompt = f"""You are an autonomous long-term user memory engine (like Claude/ChatGPT memory).
+Analyze the user's message and extract permanent facts, preferences, background, tech stack, or project context about the user.
+
+User message: '{query}'
 
 Existing long-term memories:
 {memories_str}
 
-TASK:
-1. Extract any new long-term facts, preferences, background, tech stack, or goals about the user from their message.
-2. If the new fact contradicts or updates an existing memory, list the old memory ID in delete_ids.
-3. If no personal facts exist in the query, return "extracted_fact": null.
+CRITERIA FOR LONG-TERM MEMORIES:
+1. Identity & Background: Name, profession, role, career goals, company, location.
+2. Tech Stack & Environment: Languages, frameworks, databases, cloud, tools they use or prefer.
+3. Project & Domain Context: What applications/systems they are building or maintaining.
+4. Preferences & Constraints: Specific guidelines on how they want responses, coding conventions, format preferences.
+5. If the user message is a transient question with no personal facts (e.g., 'What is 2+2?', 'Explain recursion'), return null or empty facts.
+6. If a new fact updates or contradicts an existing memory, list the old memory ID in delete_ids.
 
 JSON FORMAT CONTRACT (Return ONLY this JSON object):
 {{
-  "extracted_fact": "Concise factual statement about user (e.g. 'User's name is Mahesh and they are preparing for DevOps roles' or 'User loves Spring Boot') or null",
+  "facts": [
+    "Atomic factual statement about user (e.g. 'User works as a DevOps engineer', 'User is building an event management platform called Nexora', 'User prefers TypeScript')"
+  ],
+  "extracted_fact": "First primary fact or null",
   "delete_ids": []
 }}"""
         
@@ -563,7 +572,7 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
                     
             # 3. Match explicit JSON object structure
             if result is None:
-                json_match = re.search(r'\{\s*"extracted_fact"[\s\S]*?\}', cleaned)
+                json_match = re.search(r'\{\s*"(?:facts|extracted_fact)"[\s\S]*?\}', cleaned)
                 if json_match:
                     try:
                         result = json.loads(json_match.group(0))
@@ -574,7 +583,7 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
             if result is None:
                 fact_match = re.search(r'"extracted_fact"\s*:\s*"([^"]+)"', cleaned)
                 if fact_match:
-                    result = {"extracted_fact": fact_match.group(1), "delete_ids": []}
+                    result = {"extracted_fact": fact_match.group(1), "facts": [fact_match.group(1)], "delete_ids": []}
             
             # 5. Fallback regex to extract from thinking/prose output (e.g. 'Fact: User loves SpringBoot')
             if result is None:
@@ -583,22 +592,39 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
                     extracted_text = prose_fact_match.group(1).strip().rstrip(".,")
                     if not extracted_text.lower().startswith("user"):
                         extracted_text = f"User {extracted_text}"
-                    result = {"extracted_fact": extracted_text, "delete_ids": []}
+                    result = {"extracted_fact": extracted_text, "facts": [extracted_text], "delete_ids": []}
 
             # 6. Direct string fallback if LLM returned plain text fact
             if result is None and cleaned and not cleaned.startswith("{") and not cleaned.startswith("["):
-                result = {"extracted_fact": cleaned, "delete_ids": []}
+                result = {"extracted_fact": cleaned, "facts": [cleaned], "delete_ids": []}
 
-            # 7. Multi-fact and heuristic extraction fallback
-            fact = result.get("extracted_fact") if result else None
+            # 7. Collect all facts (multi-fact + fallback)
             facts_to_save = []
-            if fact and isinstance(fact, str) and fact.lower() not in ["none", "null"]:
-                facts_to_save.append(fact)
+            if result and isinstance(result, dict):
+                # Check "facts" array first
+                raw_facts = result.get("facts", [])
+                if isinstance(raw_facts, list):
+                    for rf in raw_facts:
+                        if rf and isinstance(rf, str) and rf.strip().lower() not in ["none", "null", "n/a"]:
+                            c_fact = rf.strip().rstrip(".") + "."
+                            if not c_fact.lower().startswith("user"):
+                                c_fact = f"User {c_fact}"
+                            if c_fact not in facts_to_save:
+                                facts_to_save.append(c_fact)
+                                
+                # Check "extracted_fact" if facts array was empty
+                if not facts_to_save:
+                    single_fact = result.get("extracted_fact")
+                    if single_fact and isinstance(single_fact, str) and single_fact.strip().lower() not in ["none", "null", "n/a"]:
+                        c_fact = single_fact.strip().rstrip(".") + "."
+                        if not c_fact.lower().startswith("user"):
+                            c_fact = f"User {c_fact}"
+                        facts_to_save.append(c_fact)
 
             # Heuristic multi-part check for high-signal user attributes
             name_m = re.search(r'\bmy name is\s+([A-Za-z]+)', query, re.IGNORECASE)
             if name_m:
-                name_fact = f"User's name is {name_m.group(1).title()}"
+                name_fact = f"User's name is {name_m.group(1).title()}."
                 if not any(name_m.group(1).lower() in f.lower() for f in facts_to_save):
                     facts_to_save.append(name_fact)
 
@@ -606,17 +632,17 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
             if role_m:
                 action_verb = role_m.group(1).strip()
                 action_target = role_m.group(2).strip()
-                role_fact = f"User is {action_verb} {action_target}"
+                role_fact = f"User is {action_verb} {action_target}."
                 if not any(action_target.lower() in f.lower() for f in facts_to_save):
                     facts_to_save.append(role_fact)
 
             love_m = re.search(r'\bi love\s+([A-Za-z0-9\s\.\-_]+)', query, re.IGNORECASE)
             if love_m:
-                love_fact = f"User loves {love_m.group(1).strip()}"
+                love_fact = f"User loves {love_m.group(1).strip()}."
                 if not any("loves" in f.lower() for f in facts_to_save):
                     facts_to_save.append(love_fact)
 
-            delete_ids = result.get("delete_ids", []) if result else []
+            delete_ids = result.get("delete_ids", []) if isinstance(result, dict) else []
             
             # Delete old memories
             for d_id in delete_ids:
@@ -627,15 +653,16 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
             # Rebuild user_memories list safely by filtering out deleted ones
             state["user_memories"] = [
                 m["content"] for m in existing_memories 
-                if m["id"] not in delete_ids
+                if m.get("id") not in delete_ids
             ]
                     
             # Add new memories
             if facts_to_save:
                 for f_item in facts_to_save:
-                    logger.info(f"Saving user memory to brain: {f_item}")
-                    self.rag_service.add_user_memory(user_id, f_item)
-                    if f_item not in state["user_memories"]:
+                    already_stored = any(f_item.strip().lower() == em.strip().lower() for em in state["user_memories"])
+                    if not already_stored:
+                        logger.info(f"Saving user memory to brain: {f_item}")
+                        self.rag_service.add_user_memory(user_id, f_item)
                         state["user_memories"].append(f_item)
                 state["memory_status"] = "SAVED"
             else:

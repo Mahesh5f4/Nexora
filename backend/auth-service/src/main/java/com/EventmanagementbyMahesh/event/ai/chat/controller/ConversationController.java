@@ -57,10 +57,11 @@ public class ConversationController {
         return ResponseEntity.ok(conversationService.sendMessage(id, request));
     }
 
-    @PostMapping("/{id}/messages/stream")
+    @PostMapping(value = "/{id}/messages/stream", produces = "text/event-stream;charset=UTF-8")
     public ResponseEntity<SseEmitter> streamMessage(@PathVariable String id, @Valid @RequestBody SendMessageRequest request) {
         SseEmitter emitter = conversationService.streamMessage(id, request);
         return ResponseEntity.ok()
+                .header("Content-Type", "text/event-stream;charset=UTF-8")
                 .header("X-Accel-Buffering", "no")
                 .header("Cache-Control", "no-cache")
                 .body(emitter);

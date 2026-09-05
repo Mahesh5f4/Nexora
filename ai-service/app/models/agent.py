@@ -12,6 +12,7 @@ class AgentAskRequest(BaseModel):
     forceRag: bool = False
     documentId: Optional[str] = None
     mode: Optional[str] = "CHAT"  # Agent mode: GENERAL, CODE_RESEARCHER, RESEARCH, PLAN, ANALYZE
+    images: Optional[List[str]] = None
 
 class AgentAskResponse(BaseModel):
     answer: str

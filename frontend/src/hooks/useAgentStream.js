@@ -147,7 +147,7 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
 
     setMessages(prev => [
       ...prev.map(m => m.streaming ? { ...m, streaming: false } : m),
-      { id: userMsgId, sender: 'USER', content: content.trim(), createdAt: new Date().toISOString() },
+      { id: userMsgId, sender: 'USER', content: content.trim(), createdAt: new Date().toISOString(), images: options.images || [] },
       { id: asstMsgId, sender: 'ASSISTANT', content: '', thinking: '', activities: [], streaming: true, sources: [], metadata: null }
     ]);
     setIsLoading(true);
@@ -252,7 +252,8 @@ export function useAgentStream(role, activeConversation, setActiveConversation, 
           mode: role,
           forceWebSearch: options.forceWebSearch || false,
           forceRag: options.forceRag || false,
-          documentId: options.documentId
+          documentId: options.documentId,
+          images: options.images || []
         },
         (eventName, dataStr) => {
           if (eventName === 'activity') {

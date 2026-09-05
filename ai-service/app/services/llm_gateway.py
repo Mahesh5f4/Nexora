@@ -112,6 +112,14 @@ class LLMGateway:
         "z-ai/glm-5.2:free"
     ]
 
+    VISION_MODELS = [
+        "openrouter/auto",
+        "openrouter/free",
+        "minimax/minimax-m3:free",
+        "google/gemma-4-31b-it:free",
+        "google/gemma-4-26b-a4b-it:free"
+    ]
+
     def _init_llm(self, api_key: str):
         self._api_key = api_key
 
@@ -119,7 +127,16 @@ class LLMGateway:
         messages = []
         if request.systemPrompt:
             messages.append({"role": "system", "content": request.systemPrompt})
-        messages.append({"role": "user", "content": request.prompt})
+            
+        if request.images and len(request.images) > 0:
+            user_content = [{"type": "text", "text": request.prompt}]
+            for img in request.images:
+                if img and isinstance(img, str):
+                    user_content.append({"type": "image_url", "image_url": {"url": img}})
+            messages.append({"role": "user", "content": user_content})
+        else:
+            messages.append({"role": "user", "content": request.prompt})
+            
         return messages
 
     def _cache_key(self, request: AiExecuteRequest) -> str:
@@ -141,8 +158,8 @@ class LLMGateway:
         self._ensure_llm()
         cache_key = self._cache_key(request)
 
-        # 1. Semantic cache lookup
-        if self._semantic_cache is not None:
+        # 1. Semantic cache lookup (only for text-only queries to prevent false visual cache hits)
+        if self._semantic_cache is not None and not (request.images and len(request.images) > 0):
             cached = self._semantic_cache.get(cache_key, system_prompt=request.systemPrompt)
             if cached is not None:
                 class CachedResponse:
@@ -162,20 +179,23 @@ class LLMGateway:
 
         import requests, json
         last_error = None
-        for model in self.MODELS:
+        candidate_models = self.VISION_MODELS if (request.images and len(request.images) > 0) else self.MODELS
+        effective_max_tokens = min(request.maxTokens or 1024, 2048) if (request.images and len(request.images) > 0) else (request.maxTokens or 4096)
+
+        for model in candidate_models:
             try:
                 logger.info(f"Executing prompt via OpenRouter model: {model}")
                 payload = {
                     "model": model,
                     "messages": messages,
                     "temperature": request.temperature or 0.2,
-                    "max_tokens": request.maxTokens or 4096
+                    "max_tokens": effective_max_tokens
                 }
                 r = requests.post(
                     "https://openrouter.ai/api/v1/chat/completions",
                     headers=headers,
                     json=payload,
-                    timeout=10
+                    timeout=15
                 )
                 if r.status_code == 200:
                     data = json.loads(r.content.decode("utf-8", errors="replace"))
@@ -183,7 +203,7 @@ class LLMGateway:
                     raw_content = msg.get("content") or msg.get("reasoning") or ""
                     clean_content = clean_reasoning_output(raw_content)
 
-                    if self._semantic_cache is not None and clean_content:
+                    if self._semantic_cache is not None and clean_content and not (request.images and len(request.images) > 0):
                         self._semantic_cache.store(cache_key, clean_content, system_prompt=request.systemPrompt)
 
                     class ModelResponse:
@@ -204,8 +224,8 @@ class LLMGateway:
         self._ensure_llm()
         cache_key = self._cache_key(request)
 
-        # 1. Semantic cache lookup
-        if self._semantic_cache is not None:
+        # 1. Semantic cache lookup (text-only)
+        if self._semantic_cache is not None and not (request.images and len(request.images) > 0):
             cached = self._semantic_cache.get(cache_key, system_prompt=request.systemPrompt)
             if cached is not None:
                 logger.info("Semantic cache HIT for stream — yielding cached response.")
@@ -224,8 +244,10 @@ class LLMGateway:
         import requests, json
         streamed_successfully = False
         last_error = None
+        candidate_models = self.VISION_MODELS if (request.images and len(request.images) > 0) else self.MODELS
+        effective_max_tokens = min(request.maxTokens or 1024, 2048) if (request.images and len(request.images) > 0) else (request.maxTokens or 4096)
 
-        for model in self.MODELS:
+        for model in candidate_models:
             full_tokens = []
             try:
                 logger.info(f"Streaming prompt via OpenRouter model: {model}")
@@ -234,7 +256,7 @@ class LLMGateway:
                     "messages": messages,
                     "stream": True,
                     "temperature": request.temperature or 0.2,
-                    "max_tokens": request.maxTokens or 4096
+                    "max_tokens": effective_max_tokens
                 }
                 r = requests.post(
                     "https://openrouter.ai/api/v1/chat/completions",

@@ -135,13 +135,17 @@ public class PythonAiServiceClient {
     }
 
     private void addUserJwtHeaderIfPresent(HttpHeaders headers) {
-        org.springframework.web.context.request.RequestAttributes attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
-        if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes) {
-            jakarta.servlet.http.HttpServletRequest request = ((org.springframework.web.context.request.ServletRequestAttributes) attributes).getRequest();
-            String authHeader = request.getHeader("Authorization");
-            if (org.springframework.util.StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
-                headers.set("X-User-Jwt", authHeader.substring(7));
+        try {
+            org.springframework.web.context.request.RequestAttributes attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes) {
+                jakarta.servlet.http.HttpServletRequest request = ((org.springframework.web.context.request.ServletRequestAttributes) attributes).getRequest();
+                String authHeader = request.getHeader("Authorization");
+                if (org.springframework.util.StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
+                    headers.set("X-User-Jwt", authHeader.substring(7));
+                }
             }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(PythonAiServiceClient.class).debug("Could not extract user JWT: {}", e.getMessage());
         }
     }
 
@@ -200,11 +204,14 @@ public class PythonAiServiceClient {
 
     public void streamAgent(AgentAskRequest request, java.util.function.Consumer<String> onEvent, java.util.function.Consumer<Exception> onError, Runnable onComplete) {
         String url = pythonServiceUrl + "/internal/agent/stream";
+        org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PythonAiServiceClient.class);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(internalToken);
         addUserJwtHeaderIfPresent(headers);
+
+        logger.info("Connecting to AI stream at {} (user_id: {})", url, request.getUserId());
 
         try {
             restTemplate.execute(
@@ -216,9 +223,10 @@ public class PythonAiServiceClient {
                     clientHttpRequest.getBody().write(mapper.writeValueAsBytes(request));
                 },
                 clientHttpResponse -> {
+                    logger.info("AI stream connection established, status: {}", clientHttpResponse.getStatusCode());
                     if (clientHttpResponse.getStatusCode().isError()) {
                         String errorBody = new String(clientHttpResponse.getBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-                        org.slf4j.LoggerFactory.getLogger(PythonAiServiceClient.class).error("AI Service Error: {} - {}", clientHttpResponse.getStatusCode(), errorBody);
+                        logger.error("AI Service Error: {} - {}", clientHttpResponse.getStatusCode(), errorBody);
                         onError.accept(new RuntimeException("AI service streaming failed: " + errorBody));
                         return null;
                     }
@@ -240,6 +248,7 @@ public class PythonAiServiceClient {
                             onEvent.accept(block.toString());
                         }
                     } catch (Exception e) {
+                        logger.error("Exception while reading AI stream response: ", e);
                         onError.accept(e);
                     }
                     onComplete.run();
@@ -247,7 +256,7 @@ public class PythonAiServiceClient {
                 }
             );
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(PythonAiServiceClient.class).error("AI Service Error calling URL {}: ", url, e);
+            logger.error("AI Service Error calling URL {}: ", url, e);
             onError.accept(e);
         }
     }

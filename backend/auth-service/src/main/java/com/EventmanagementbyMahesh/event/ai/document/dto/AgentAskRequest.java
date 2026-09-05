@@ -82,4 +82,14 @@ public class AgentAskRequest {
     public void setMode(String mode) {
         this.mode = mode;
     }
+
+    private List<String> images;
+
+    public List<String> getImages() {
+        return images;
+    }
+
+    public void setImages(List<String> images) {
+        this.images = images;
+    }
 }

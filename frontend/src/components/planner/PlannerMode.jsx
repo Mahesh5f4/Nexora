@@ -244,7 +244,16 @@ const PlanMessage = React.memo(({ msg }) => {
             : 'w-full text-white/85 bg-[#0f080c]/60 border border-rose-500/15 rounded-2xl shadow-xl'
         }`}>
           {isUser ? (
-            <p className="whitespace-pre-wrap">{content}</p>
+            <div>
+              {msg.images && msg.images.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2.5">
+                  {msg.images.map((img, idx) => (
+                    <img key={idx} src={img} alt="Attached upload" className="max-w-[280px] max-h-[180px] object-cover rounded-xl border border-white/15 shadow-md" />
+                  ))}
+                </div>
+              )}
+              <p className="whitespace-pre-wrap">{content}</p>
+            </div>
           ) : msg.streaming && !msg.content ? (
             <StreamingStatus metadata={msg.metadata} mode="PLAN" />
           ) : (

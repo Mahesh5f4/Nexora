@@ -39,3 +39,4 @@ class AgentState(TypedDict):
     analyze_evidence_types: Optional[List[str]]
     execution_metrics: Optional[dict]
     activity_events: Optional[List[dict]]
+    images: Optional[List[str]]

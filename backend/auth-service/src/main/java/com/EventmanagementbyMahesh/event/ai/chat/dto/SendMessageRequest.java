@@ -12,4 +12,5 @@ public class SendMessageRequest {
     private boolean forceRag;
     private String documentId;
     private String mode;
+    private java.util.List<String> images;
 }

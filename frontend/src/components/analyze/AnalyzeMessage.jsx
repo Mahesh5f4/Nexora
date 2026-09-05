@@ -86,7 +86,18 @@ const AnalyzeMessage = React.memo(({ message }) => {
             ? 'inline-block bg-[#1A1A1C] border border-white/10 text-white/90 rounded-2xl rounded-tr-sm' 
             : 'w-full text-white/85'
         }`}>
-          {message.streaming && !message.content ? (
+          {isUser ? (
+            <div>
+              {message.images && message.images.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2.5">
+                  {message.images.map((img, idx) => (
+                    <img key={idx} src={img} alt="Attached upload" className="max-w-[280px] max-h-[180px] object-cover rounded-xl border border-white/15 shadow-md" />
+                  ))}
+                </div>
+              )}
+              <p className="whitespace-pre-wrap">{message.content}</p>
+            </div>
+          ) : message.streaming && !message.content ? (
             <StreamingStatus metadata={message.metadata} mode="ANALYZE" />
           ) : (() => {
             let processedContent = message.content + (message.streaming ? ' ▍' : '');

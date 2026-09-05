@@ -114,8 +114,16 @@ const MessageItem = ({ message, isStreaming, onStreamingComplete }) => {
           
           <div className="text-white/90">
             {isUser ? (
-              /* §7 Chat: User messages: bg-[#1A1A1C] rounded-2xl px-4 py-3 */
-              <div className="bg-[#1A1A1C] rounded-2xl px-4 py-3 whitespace-pre-wrap text-[14px] leading-[1.6]">{message.content}</div>
+              <div className="bg-[#1A1A1C] rounded-2xl px-4 py-3 whitespace-pre-wrap text-[14px] leading-[1.6]">
+                {message.images && message.images.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2.5">
+                    {message.images.map((img, idx) => (
+                      <img key={idx} src={img} alt="Attached upload" className="max-w-[280px] max-h-[180px] object-cover rounded-xl border border-white/15 shadow-md" />
+                    ))}
+                  </div>
+                )}
+                {message.content}
+              </div>
             ) : isStreaming && !displayedContent ? (
               <StreamingStatus metadata={message.metadata} mode="GENERAL" />
             ) : (

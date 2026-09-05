@@ -147,6 +147,7 @@ public class ConversationService {
         agentRequest.setForceRag(request.isForceRag());
         agentRequest.setDocumentId(request.getDocumentId());
         agentRequest.setMode(request.getMode());
+        agentRequest.setImages(request.getImages());
         AgentAskResponse response;
         try {
             response = pythonAiServiceClient.askAgent(agentRequest);
@@ -192,11 +193,18 @@ public class ConversationService {
         agentRequest.setForceRag(request.isForceRag());
         agentRequest.setDocumentId(request.getDocumentId());
         agentRequest.setMode(request.getMode());
+        agentRequest.setImages(request.getImages());
 
         SseEmitter emitter = new SseEmitter(1800000L); // 30 minutes timeout
         emitter.onTimeout(emitter::complete);
         emitter.onError(t -> emitter.complete());
         StringBuilder fullAnswer = new StringBuilder();
+
+        // Send immediate heartbeat so Tomcat flushes HTTP 200 headers to client/Nginx
+        // Without this, the response is buffered until the first real event arrives (30s+ later), causing client timeouts
+        try {
+            emitter.send(SseEmitter.event().comment("start"));
+        } catch (Exception ignored) {}
 
         // Capture request attributes to propagate to the new thread
         org.springframework.web.context.request.RequestAttributes attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
@@ -222,7 +230,6 @@ public class ConversationService {
                             }
 
                             if (!data.isEmpty()) {
-                                Object dataToSend = data;
                                 try {
                                     com.fasterxml.jackson.databind.JsonNode node = OBJECT_MAPPER.readTree(data);
                                     if (("token".equals(eventName) || "message".equals(eventName)) && node != null) {
@@ -236,12 +243,11 @@ public class ConversationService {
                                             fullAnswer.append(node.asText());
                                         }
                                     }
-                                    dataToSend = node;
                                 } catch (Exception ignored) {
                                 }
 
-                                // Send the formatted event to the frontend
-                                emitter.send(SseEmitter.event().name(eventName).data(dataToSend));
+                                // Send the raw string directly to frontend without HttpMessageNotWritableException
+                                emitter.send(SseEmitter.event().name(eventName).data(data));
                             }
                         } catch (Exception e) {
                             emitter.completeWithError(e);

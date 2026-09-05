@@ -1289,7 +1289,8 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
         ai_request = AiExecuteRequest(
             prompt=prompt,
             systemPrompt=system_prompt,
-            temperature=0.3
+            temperature=0.3,
+            images=state.get("images")
         )
 
         state["final_request"] = ai_request.model_dump(exclude_none=True)
@@ -1362,7 +1363,8 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
         ai_request = AiExecuteRequest(
             prompt=prompt,
             systemPrompt=system_prompt,
-            temperature=0.2 if (has_doc and has_web) else 0.4
+            temperature=0.2 if (has_doc and has_web) else 0.4,
+            images=state.get("images")
         )
         
         # DEBUG: log the final prompt (without writing to hardcoded path)
@@ -1442,7 +1444,8 @@ JSON FORMAT CONTRACT (Return ONLY this JSON object):
         ai_request = AiExecuteRequest(
             prompt=prompt,
             systemPrompt=context_result.system_prompt,
-            temperature=0.5
+            temperature=0.5,
+            images=state.get("images")
         )
         state["final_request"] = ai_request.model_dump(exclude_none=True)
         state["mode"] = "direct"

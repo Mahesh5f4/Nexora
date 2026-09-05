@@ -52,7 +52,8 @@ def ask_agent(
             "needs_web_search": request.forceWebSearch,
             "force_rag": getattr(request, "forceRag", False),
             "answer": None,
-            "mode": (request.mode or "CHAT").upper()
+            "mode": (request.mode or "CHAT").upper(),
+            "images": getattr(request, "images", None)
         }
         
         # Execute graph
@@ -180,7 +181,8 @@ def ask_agent_stream(
                     "force_rag": getattr(request, "forceRag", False),
                     "document_id": getattr(request, "documentId", None),
                     "answer": None,
-                    "mode": (request.mode or "CHAT").upper()
+                    "mode": (request.mode or "CHAT").upper(),
+                    "images": getattr(request, "images", None)
                 }
                 
                 yield f"event: start\ndata: {{}}\n\n"
